@@ -132,7 +132,17 @@ function script_command($script)
   }
   $is_php = (bool)preg_match('/php/i', $first_line);
   if ($is_php) {
-    $php = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+    $php = '/usr/bin/php';
+    if (
+      PHP_SAPI === 'cli' &&
+      defined('PHP_BINARY') &&
+      PHP_BINARY &&
+      is_executable(PHP_BINARY)
+    ) {
+      $php = PHP_BINARY;
+    } elseif (!is_executable($php)) {
+      $php = 'php';
+    }
     return escapeshellarg($php) . ' ' . escapeshellarg($script);
   }
   if (is_executable($script)) {

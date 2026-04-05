@@ -162,6 +162,59 @@
 						<span v-else>N/A</span>
 					</div>
 				</div>
+				<div
+					v-if="hasStorageDetails"
+					class="text-label text-default col-span-2 2xl:col-span-3 border-b-[1px] shrink-0 border-neutral-200 dark:border-neutral-700 mx-2 pt-2"
+				>
+					Storage
+				</div>
+				<div v-if="hasStorageDetails" class="grid grid-cols-1 self-start py-1 md:py-2 px-2">
+					<div class="text-sm text-muted">
+						Role
+					</div>
+					<div class="text-sm break-words">
+						{{ storageRoleLabel }}
+					</div>
+				</div>
+				<div v-if="hasStorageDetails" class="grid grid-cols-1 self-start py-1 md:py-2 px-2">
+					<div class="text-sm text-muted">
+						Label
+					</div>
+					<div class="text-sm break-words">
+						<span v-if="diskObj['storage-label']">{{ diskObj['storage-label'] }}</span>
+						<span v-else>N/A</span>
+					</div>
+				</div>
+				<div v-if="hasStorageDetails" class="grid grid-cols-1 self-start py-1 md:py-2 px-2">
+					<div class="text-sm text-muted">
+						Filesystem
+					</div>
+					<div class="text-sm break-words">
+						<span v-if="diskObj['fs-type']">{{ diskObj['fs-type'] }}</span>
+						<span v-else>N/A</span>
+					</div>
+				</div>
+				<div v-if="hasStorageDetails" class="grid grid-cols-1 self-start py-1 md:py-2 px-2">
+					<div class="text-sm text-muted">
+						Status
+					</div>
+					<div class="text-sm break-words">
+						<span v-if="diskObj['fs-status']">{{ diskObj['fs-status'] }}</span>
+						<span v-else>N/A</span>
+					</div>
+				</div>
+				<div
+					v-if="hasStorageDetails"
+					class="grid grid-col-1 self-start col-span-2 2xl:col-span-2 py-1 md:py-2 px-2"
+				>
+					<div class="text-sm text-muted col-span-2">
+						Mountpoint
+					</div>
+					<div class="text-sm col-span-2 break-words">
+						<span v-if="diskObj['fs-mountpoint']">{{ diskObj['fs-mountpoint'] }}</span>
+						<span v-else>N/A</span>
+					</div>
+				</div>
 
 				<div v-if="loadingSpinner" class="grid grid-cols-1 self-center py-1 md:py-2 px-2 row-span-2">
 					<LoadingSpinner></LoadingSpinner>
@@ -178,7 +231,7 @@
 
 <script>
 import { RefreshIcon as RefreshIconOutline } from "@heroicons/vue/outline";
-import { ref, watch, inject, reactive } from "vue";
+import { ref, watch, inject, reactive, computed } from "vue";
 import LoadingSpinner from "./LoadingSpinner.vue";
 
 export default {
@@ -196,6 +249,31 @@ export default {
     const lsdevJson = inject("lsdevJson");
     const diskInfo = inject("diskInfo");
     const loadingSpinner = ref(true);
+    const storageRoleLabel = computed(() => {
+      switch (diskObj["storage-role"]) {
+        case "array":
+          return "Array member";
+        case "parity":
+          return "Parity device";
+        case "pool":
+          return "Pool member";
+        case "boot":
+          return "Boot device";
+        case "unassigned":
+          return "Unassigned device";
+        default:
+          return "Unknown";
+      }
+    });
+    const hasStorageDetails = computed(() =>
+      [
+        diskObj["storage-role"],
+        diskObj["storage-label"],
+        diskObj["fs-type"],
+        diskObj["fs-status"],
+        diskObj["fs-mountpoint"],
+      ].some((value) => !!value)
+    );
     // console.log('disks info:', diskInfo)
     // console.log('lsDev info:', lsdevJson)
     const updateDiskObj = () => {
@@ -229,6 +307,8 @@ export default {
       lsdevJson,
       diskInfo,
       loadingSpinner,
+      storageRoleLabel,
+      hasStorageDetails,
     };
   },
 };

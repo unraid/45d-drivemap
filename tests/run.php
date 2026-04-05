@@ -150,11 +150,16 @@ function set_common_env($ctx, $fixtures)
   putenv('DRIVEMAP_DISABLE_SMART=');
 }
 
-function run_php_script($script)
+function run_php_script($script, $env = [])
 {
+  $prefix = [];
+  foreach ($env as $key => $value) {
+    $prefix[] = $key . '=' . escapeshellarg((string)$value);
+  }
   $output = [];
   $code = 0;
-  exec('php ' . escapeshellarg($script), $output, $code);
+  $cmd = (count($prefix) ? implode(' ', $prefix) . ' ' : '') . 'php ' . escapeshellarg($script);
+  exec($cmd, $output, $code);
   return [$code, $output];
 }
 
@@ -441,6 +446,11 @@ assert_equal($slot_1_1['capacity'], '1 TiB', '1-1 capacity');
 assert_equal($slot_1_1['disk_type'], 'HDD', '1-1 disk type');
 assert_equal($slot_1_1['temp-c'], '34 C', '1-1 temperature');
 assert_equal($slot_1_1['partitions'], '2', '1-1 partition count');
+assert_equal($slot_1_1['storage-role'], 'array', '1-1 storage role');
+assert_equal($slot_1_1['storage-label'], 'disk1', '1-1 storage label');
+assert_equal($slot_1_1['fs-type'], 'xfs', '1-1 filesystem type');
+assert_equal($slot_1_1['fs-status'], 'Mounted', '1-1 filesystem status');
+assert_equal($slot_1_1['fs-mountpoint'], '/mnt/disk1', '1-1 filesystem mountpoint');
 
 $slot_1_2 = $map['rows'][0][1];
 assert_equal($slot_1_2['bay-id'], '1-2', 'bay id 1-2');
@@ -451,6 +461,11 @@ assert_equal($slot_1_2['serial'], 'SAMPLE0002', '1-2 serial');
 assert_equal($slot_1_2['capacity'], '512 GiB', '1-2 capacity');
 assert_equal($slot_1_2['disk_type'], 'SSD', '1-2 disk type');
 assert_equal($slot_1_2['partitions'], '1', '1-2 partition count');
+assert_equal($slot_1_2['storage-role'], 'pool', '1-2 storage role');
+assert_equal($slot_1_2['storage-label'], 'cache', '1-2 storage label');
+assert_equal($slot_1_2['fs-type'], 'btrfs', '1-2 filesystem type');
+assert_equal($slot_1_2['fs-status'], 'Mounted', '1-2 filesystem status');
+assert_equal($slot_1_2['fs-mountpoint'], '/mnt/cache', '1-2 filesystem mountpoint');
 
 $slot_1_3 = $map['rows'][0][2];
 assert_equal($slot_1_3['bay-id'], '1-3', 'bay id 1-3');
@@ -465,6 +480,12 @@ assert_equal($slot_2_1['serial'], 'SAMPLE0003', '2-1 serial');
 assert_equal($slot_2_1['capacity'], '1 TiB', '2-1 capacity');
 assert_equal($slot_2_1['disk_type'], 'HDD', '2-1 disk type');
 assert_equal($slot_2_1['partitions'], '1', '2-1 partition count');
+assert_equal($slot_2_1['temp-c'], '29 C', '2-1 temperature');
+assert_equal($slot_2_1['storage-role'], 'unassigned', '2-1 storage role');
+assert_equal($slot_2_1['storage-label'], 'dev3', '2-1 storage label');
+assert_equal($slot_2_1['fs-type'], '', '2-1 filesystem type empty');
+assert_equal($slot_2_1['fs-status'], '', '2-1 filesystem status empty');
+assert_equal($slot_2_1['fs-mountpoint'], '', '2-1 filesystem mountpoint empty');
 
 assert_true(isset($map['lastUpdated']), 'lastUpdated present');
 assert_true(isset($map['lsdevDuration']), 'lsdevDuration present');
@@ -661,6 +682,40 @@ if (is_array($invalid_server)) {
   $invalid_aliases = $invalid_result['aliases'] ?? null;
   assert_true($invalid_aliases === null || $invalid_aliases === [], 'ported dmap does not emit aliases on invalid style');
 }
+
+// Scenario 9: HL15 fallback detection + auto alias generation without vendor tools.
+$ctx_hl15 = create_context('hl15-fallback');
+set_common_env($ctx_hl15, $fixtures);
+@unlink($ctx_hl15['alias_file']);
+putenv('DRIVEMAP_SERVER_MODEL');
+putenv('DRIVEMAP_CHASSIS_SIZE');
+putenv('DRIVEMAP_ALIAS_STYLE');
+$hl15_lspci = implode("\n", [
+  '02:00.0 Serial Attached SCSI controller: Broadcom / LSI SAS3416 Fusion-MPT Tri-Mode I/O Controller Chip (IOC) (rev 01)',
+  "\tSubsystem: Broadcom / LSI HBA 9400-16i",
+  "\tKernel driver in use: mpt3sas",
+  "\tKernel modules: mpt3sas",
+]) . "\n";
+[$hl15_code] = run_php_script($map_script, [
+  'DRIVEMAP_PRODUCT_NAME' => 'MW34-SP0-00',
+  'DRIVEMAP_BOARD_NAME' => 'MW34-SP0-00',
+  'DRIVEMAP_BOARD_VENDOR' => '45Drives',
+  'DRIVEMAP_LSPCI_VERBOSE' => $hl15_lspci,
+]);
+assert_equal($hl15_code, 0, 'hl15 fallback map generation succeeds');
+$hl15_alias_lines = alias_lines_from_fixture($ctx_hl15['alias_file']);
+assert_equal(count($hl15_alias_lines), 15, 'hl15 fallback generates fifteen aliases');
+$hl15_server = load_json_file($ctx_hl15['out_dir'] . '/server_info.json');
+assert_true(is_array($hl15_server), 'hl15 fallback server_info parses as JSON');
+assert_equal($hl15_server['Model'] ?? '', 'HomeLab-HL15', 'hl15 fallback model');
+assert_equal($hl15_server['Alias Style'] ?? '', 'HOMELAB', 'hl15 fallback alias style');
+assert_equal($hl15_server['Chassis Size'] ?? '', 'HL15', 'hl15 fallback chassis');
+assert_equal($hl15_server['HBA'][0]['Model'] ?? '', 'HBA 9400-16i', 'hl15 fallback hba model');
+assert_equal($hl15_server['HBA'][0]['Bus Address'] ?? '', '0000:02:00.0', 'hl15 fallback hba bus');
+$hl15_map = load_json_file($ctx_hl15['out_dir'] . '/drivemap.json');
+assert_true(is_array($hl15_map), 'hl15 fallback drivemap parses as JSON');
+assert_equal(count($hl15_map['rows'] ?? []), 1, 'hl15 fallback row count');
+assert_equal(count($hl15_map['rows'][0] ?? []), 15, 'hl15 fallback bay count');
 
 if ($failures > 0) {
   fwrite(STDERR, "\n$failures test(s) failed.\n");

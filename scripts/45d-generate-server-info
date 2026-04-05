@@ -12,6 +12,10 @@ $force_chassis = getenv('DRIVEMAP_CHASSIS_SIZE') ?: '';
 $force_alias = getenv('DRIVEMAP_ALIAS_STYLE') ?: '';
 $force_serial = getenv('DRIVEMAP_SERVER_SERIAL') ?: '';
 $force_prefix = getenv('DRIVEMAP_SERVER_PREFIX') ?: '';
+$product_name_override = getenv('DRIVEMAP_PRODUCT_NAME') ?: '';
+$board_name_override = getenv('DRIVEMAP_BOARD_NAME') ?: '';
+$board_vendor_override = getenv('DRIVEMAP_BOARD_VENDOR') ?: '';
+$lspci_verbose_override = getenv('DRIVEMAP_LSPCI_VERBOSE') ?: '';
 $log_file = getenv('DRIVEMAP_LOG_FILE') ?: ($output_dir . '/drivemap.log');
 
 @mkdir($output_dir, 0755, true);
@@ -187,6 +191,7 @@ function infer_prefix($product_name)
 {
   $product_name = strtolower($product_name);
   $prefixes = [
+    'mw34-sp0-00' => 'HomeLab',
     'stornado' => 'Stornado',
     'proxinator' => 'Proxinator',
     'destroyinator' => 'Destroyinator',
@@ -200,6 +205,110 @@ function infer_prefix($product_name)
     }
   }
   return 'Storinator';
+}
+
+function lspci_verbose_output($override)
+{
+  if ($override !== '') {
+    return $override;
+  }
+  $output = shell_exec('lspci -d 1000:* -vv 2>/dev/null');
+  return is_string($output) ? $output : '';
+}
+
+function detect_hbas($lspci_output)
+{
+  if (!is_string($lspci_output) || trim($lspci_output) === '') {
+    return [];
+  }
+
+  $hba_models = [
+    'SAS9305-16i' => 16,
+    'SAS9305-24i' => 24,
+    'HBA 9405W-16i' => 16,
+    'HBA 9400-16i' => 16,
+    '9600-24i' => 24,
+    '9600-16i' => 16,
+    '9660-16i' => 16,
+    '9361-16i' => 16,
+    '9361-24i' => 24,
+  ];
+  $hba_drivers = [
+    'SAS9305-16i' => 'mpt3sas',
+    'SAS9305-24i' => 'mpt3sas',
+    'HBA 9405W-16i' => 'mpt3sas',
+    'HBA 9400-16i' => 'mpt3sas',
+    '9600-24i' => 'mpi3mr',
+    '9600-16i' => 'mpi3mr',
+    '9660-16i' => 'mpi3mr',
+    '9361-16i' => 'megaraid_sas',
+    '9361-24i' => 'megaraid_sas',
+  ];
+  $hba_adapters = [
+    'SAS9305-16i' => 'SAS3224 PCI-Express Fusion-MPT SAS-3',
+    'SAS9305-24i' => 'SAS3224 PCI-Express Fusion-MPT SAS-3',
+    'HBA 9405W-16i' => 'SAS3616 Fusion-MPT Tri-Mode I/O Controller Chip (IOC)',
+    'HBA 9400-16i' => 'SAS3416 Fusion-MPT Tri-Mode I/O Controller Chip (IOC)',
+    '9600-24i' => 'Fusion-MPT 24GSAS/PCIe SAS40xx',
+    '9600-16i' => 'Fusion-MPT 24GSAS/PCIe SAS40xx',
+    '9660-16i' => 'Fusion-MPT 24GSAS/PCIe SAS40xx',
+    '9361-16i' => 'MegaRAID SAS-3 3316',
+    '9361-24i' => 'MegaRAID SAS-3 3316',
+  ];
+
+  $pattern = '/^((?:[0-9A-Fa-f]{4}:)?[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}\.[0-9A-Fa-f]).*\n(?:^\t.*\n)*^\tSubsystem: .*?(9600-16i|9600-24i|SAS9305-16i|SAS9305-24i|HBA 9405W-16i|9361-16i|HBA 9400-16i|9361-24i|9660-16i).*$/m';
+  if (!preg_match_all($pattern, $lspci_output, $matches, PREG_SET_ORDER)) {
+    return [];
+  }
+
+  $hbas = [];
+  foreach ($matches as $index => $match) {
+    $model = $match[2];
+    $bus = $match[1];
+    if (strpos($bus, '0000:') !== 0) {
+      $bus = '0000:' . $bus;
+    }
+    $hbas[] = [
+      'Model' => $model,
+      'Adapter' => $hba_adapters[$model] ?? $model,
+      'Bus Address' => $bus,
+      'Drive Connections' => $hba_models[$model] ?? 0,
+      'Kernel Driver' => $hba_drivers[$model] ?? '?',
+      'Ctl' => $index,
+      'Firmware Version' => '?',
+      'Driver Version' => '?',
+      'Driver Name' => $hba_drivers[$model] ?? '?',
+    ];
+  }
+
+  return $hbas;
+}
+
+function count_hbas_by_connections($hbas, $connections)
+{
+  $count = 0;
+  foreach ($hbas as $hba) {
+    if ((int)($hba['Drive Connections'] ?? 0) === (int)$connections) {
+      $count++;
+    }
+  }
+  return $count;
+}
+
+function hardware_profile($product_name, $board_name, $hbas)
+{
+  $names = array_filter([$product_name, $board_name], fn($value) => is_string($value) && $value !== '');
+  foreach ($names as $name) {
+    if ($name === 'MW34-SP0-00' && count_hbas_by_connections($hbas, 16) === 1 && count_hbas_by_connections($hbas, 24) === 0) {
+      return [
+        'prefix' => 'HomeLab',
+        'style' => 'HOMELAB',
+        'chassis' => 'HL15',
+        'model' => 'HomeLab-HL15',
+      ];
+    }
+  }
+  return null;
 }
 
 function model_from_parts($prefix, $style, $chassis)
@@ -235,23 +344,33 @@ if (is_executable($vendor_server_identifier)) {
   }
 }
 
-$product_name = read_first_value([
+$product_name = $product_name_override !== '' ? $product_name_override : read_first_value([
   '/sys/class/dmi/id/product_name',
   '/sys/class/dmi/id/board_name',
+]);
+$board_name = $board_name_override !== '' ? $board_name_override : read_first_value([
+  '/sys/class/dmi/id/board_name',
+  '/sys/class/dmi/id/product_name',
+]);
+$board_vendor = $board_vendor_override !== '' ? $board_vendor_override : read_first_value([
+  '/sys/class/dmi/id/board_vendor',
+  '/sys/class/dmi/id/sys_vendor',
 ]);
 $serial = $force_serial !== '' ? $force_serial : read_first_value([
   '/sys/class/dmi/id/product_serial',
   '/sys/class/dmi/id/chassis_serial',
   '/sys/class/dmi/id/board_serial',
 ]);
+$hbas = detect_hbas(lspci_verbose_output($lspci_verbose_override));
 $prefix = $force_prefix !== '' ? $force_prefix : infer_prefix($product_name);
 $layout = infer_layout_from_aliases($alias_file, $prefix);
+$profile = hardware_profile($product_name, $board_name, $hbas);
 
-$chassis = $force_chassis !== '' ? $force_chassis : ($layout['chassis'] !== '' ? $layout['chassis'] : '?');
-$alias_style = $force_alias !== '' ? strtoupper($force_alias) : ($layout['style'] !== '' ? $layout['style'] : 'STORINATOR');
+$chassis = $force_chassis !== '' ? $force_chassis : ($layout['chassis'] !== '' ? $layout['chassis'] : ($profile['chassis'] ?? '?'));
+$alias_style = $force_alias !== '' ? strtoupper($force_alias) : ($layout['style'] !== '' ? $layout['style'] : ($profile['style'] ?? 'STORINATOR'));
 $chassis = strtoupper($chassis);
 
-$model = $force_model !== '' ? $force_model : model_from_parts($prefix, $alias_style, $chassis);
+$model = $force_model !== '' ? $force_model : ($profile['model'] ?? model_from_parts($prefix, $alias_style, $chassis));
 
 $server_info = [
   // Keep output compatible with the embedded 45Drives frontend contract.
@@ -259,7 +378,12 @@ $server_info = [
   'Chassis Size' => $chassis !== '' ? $chassis : '?',
   'Alias Style' => $alias_style !== '' ? $alias_style : '?',
   'Serial' => $serial !== '' ? $serial : '?',
-  'HBA' => [],
+  'HBA' => $hbas,
+  'Motherboard' => [
+    'Manufacturer' => $board_vendor !== '' ? $board_vendor : '?',
+    'Product Name' => $board_name !== '' ? $board_name : '?',
+    'Serial Number' => $serial !== '' ? $serial : '?',
+  ],
 ];
 
 file_put_contents($output_file, json_encode($server_info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");

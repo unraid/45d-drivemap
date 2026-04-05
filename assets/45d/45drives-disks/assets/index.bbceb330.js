@@ -5861,6 +5861,29 @@ const _sfc_main$u = {
     const lsdevJson = inject("lsdevJson");
     const diskInfo = inject("diskInfo");
     const loadingSpinner = ref(true);
+    const storageRoleLabel = computed(() => {
+      switch (diskObj["storage-role"]) {
+        case "array":
+          return "Array member";
+        case "parity":
+          return "Parity device";
+        case "pool":
+          return "Pool member";
+        case "boot":
+          return "Boot device";
+        case "unassigned":
+          return "Unassigned device";
+        default:
+          return "Unknown";
+      }
+    });
+    const hasStorageDetails = computed(() => [
+      diskObj["storage-role"],
+      diskObj["storage-label"],
+      diskObj["fs-type"],
+      diskObj["fs-status"],
+      diskObj["fs-mountpoint"]
+    ].some((value) => !!value));
     const updateDiskObj = () => {
       if (!currentDisk.value)
         return;
@@ -5880,7 +5903,9 @@ const _sfc_main$u = {
       diskObj,
       lsdevJson,
       diskInfo,
-      loadingSpinner
+      loadingSpinner,
+      storageRoleLabel,
+      hasStorageDetails
     };
   }
 };
@@ -6092,6 +6117,37 @@ function _sfc_render$u(_ctx, _cache, $props, $setup, $data, $options) {
             $setup.diskObj["health"] ? (openBlock(), createElementBlock("span", _hoisted_82, toDisplayString($setup.diskObj["health"]), 1)) : (openBlock(), createElementBlock("span", _hoisted_83, "N/A"))
           ])
         ]),
+        $setup.hasStorageDetails ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
+          createBaseVNode("div", { class: "text-label text-default col-span-2 2xl:col-span-3 border-b-[1px] shrink-0 border-neutral-200 dark:border-neutral-700 mx-2 pt-2" }, "Storage"),
+          createBaseVNode("div", { class: "grid grid-cols-1 self-start py-1 md:py-2 px-2" }, [
+            createBaseVNode("div", { class: "text-sm text-muted" }, "Role"),
+            createBaseVNode("div", { class: "text-sm break-words" }, toDisplayString($setup.storageRoleLabel), 1)
+          ]),
+          createBaseVNode("div", { class: "grid grid-cols-1 self-start py-1 md:py-2 px-2" }, [
+            createBaseVNode("div", { class: "text-sm text-muted" }, "Label"),
+            createBaseVNode("div", { class: "text-sm break-words" }, [
+              $setup.diskObj["storage-label"] ? (openBlock(), createElementBlock("span", { key: 0 }, toDisplayString($setup.diskObj["storage-label"]), 1)) : (openBlock(), createElementBlock("span", { key: 1 }, "N/A"))
+            ])
+          ]),
+          createBaseVNode("div", { class: "grid grid-cols-1 self-start py-1 md:py-2 px-2" }, [
+            createBaseVNode("div", { class: "text-sm text-muted" }, "Filesystem"),
+            createBaseVNode("div", { class: "text-sm break-words" }, [
+              $setup.diskObj["fs-type"] ? (openBlock(), createElementBlock("span", { key: 0 }, toDisplayString($setup.diskObj["fs-type"]), 1)) : (openBlock(), createElementBlock("span", { key: 1 }, "N/A"))
+            ])
+          ]),
+          createBaseVNode("div", { class: "grid grid-cols-1 self-start py-1 md:py-2 px-2" }, [
+            createBaseVNode("div", { class: "text-sm text-muted" }, "Status"),
+            createBaseVNode("div", { class: "text-sm break-words" }, [
+              $setup.diskObj["fs-status"] ? (openBlock(), createElementBlock("span", { key: 0 }, toDisplayString($setup.diskObj["fs-status"]), 1)) : (openBlock(), createElementBlock("span", { key: 1 }, "N/A"))
+            ])
+          ]),
+          createBaseVNode("div", { class: "grid grid-col-1 self-start col-span-2 2xl:col-span-2 py-1 md:py-2 px-2" }, [
+            createBaseVNode("div", { class: "text-sm text-muted col-span-2" }, "Mountpoint"),
+            createBaseVNode("div", { class: "text-sm col-span-2 break-words" }, [
+              $setup.diskObj["fs-mountpoint"] ? (openBlock(), createElementBlock("span", { key: 0 }, toDisplayString($setup.diskObj["fs-mountpoint"]), 1)) : (openBlock(), createElementBlock("span", { key: 1 }, "N/A"))
+            ])
+          ])
+        ], 64)) : createCommentVNode("", true),
         $setup.loadingSpinner ? (openBlock(), createElementBlock("div", _hoisted_84, [
           createVNode(_component_LoadingSpinner)
         ])) : createCommentVNode("", true)
@@ -36853,10 +36909,6 @@ function _sfc_render$1(_ctx, _cache, $props, $setup, $data, $options) {
           ])
         ])
       ])
-    ])) : $setup.currentDisk != "" ? (openBlock(), createElementBlock("div", _hoisted_66, [
-      createBaseVNode("div", _hoisted_67, [
-        createBaseVNode("span", _hoisted_68, "Disk '" + toDisplayString($setup.currentDisk) + "' is not a member of a zpool. ", 1)
-      ])
     ])) : (openBlock(), createElementBlock("div", _hoisted_69, _hoisted_71))
   ]);
 }
@@ -36890,6 +36942,18 @@ const _sfc_main = {
     provide("enableZfsAnimations", enableZfsAnimations);
     const pageLayout = ref("AZ");
     provide("pageLayout", pageLayout);
+    const selectedDiskHasZfs = computed(() => {
+      if (!currentDisk.value || !zfsInfo.zfs_disks) {
+        return false;
+      }
+      return Object.prototype.hasOwnProperty.call(zfsInfo.zfs_disks, currentDisk.value);
+    });
+    const activePageLayout = computed(() => {
+      if (selectedDiskHasZfs.value) {
+        return pageLayout.value;
+      }
+      return pageLayout.value.replace("Z", "");
+    });
     const notifications = ref();
     provide("Notifications", notifications);
     const delay = (s) => new Promise((res) => setTimeout(res, s * 1e3));
@@ -37251,6 +37315,8 @@ const _sfc_main = {
       zfsInfo,
       enableZfsAnimations,
       pageLayout,
+      activePageLayout,
+      selectedDiskHasZfs,
       notifications
     };
   }
@@ -37312,12 +37378,12 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         createBaseVNode("div", _hoisted_3, [
           createBaseVNode("div", {
             class: normalizeClass([
-              $setup.pageLayout === "AZ" ? "lg:col-span-6" : "",
-              $setup.pageLayout === "BZ" ? "xl:col-span-3 2xl:col-span-2" : "",
-              $setup.pageLayout === "CZ" ? "xl:col-span-4 2xl:col-span-3" : "",
-              $setup.pageLayout === "A" ? "lg:col-span-6" : "",
-              $setup.pageLayout === "B" ? "xl:col-span-3 2xl:col-span-2" : "",
-              $setup.pageLayout === "C" ? "xl:col-span-4 2xl:col-span-3" : "",
+              $setup.activePageLayout === "AZ" ? "lg:col-span-6" : "",
+              $setup.activePageLayout === "BZ" ? "xl:col-span-3 2xl:col-span-2" : "",
+              $setup.activePageLayout === "CZ" ? "xl:col-span-4 2xl:col-span-3" : "",
+              $setup.activePageLayout === "A" ? "lg:col-span-6" : "",
+              $setup.activePageLayout === "B" ? "xl:col-span-3 2xl:col-span-2" : "",
+              $setup.activePageLayout === "C" ? "xl:col-span-4 2xl:col-span-3" : "",
               "grow grid gap-well col-span-6"
             ])
           }, [
@@ -37331,23 +37397,23 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
           $setup.preloadChecks.serverInfo.finished && $setup.preloadChecks.diskInfo.finished && !$setup.preloadChecks.serverInfo.failed && !$setup.preloadChecks.diskInfo.failed && $setup.preloadChecks.zfs.finished && $setup.preloadChecks.pageStatus.ready ? (openBlock(), createElementBlock("div", {
             key: 0,
             class: normalizeClass([
-              $setup.pageLayout === "AZ" ? "lg:col-span-3" : "",
-              $setup.pageLayout === "BZ" ? "xl:col-span-3 2xl:col-span-4" : "",
-              $setup.pageLayout === "CZ" ? "xl:col-span-2 2xl:col-span-3" : "",
-              $setup.pageLayout === "A" ? "lg:col-span-6" : "",
-              $setup.pageLayout === "B" ? "xl:col-span-3 2xl:col-span-4" : "",
-              $setup.pageLayout === "C" ? "xl:col-span-2 2xl:col-span-3" : "",
+              $setup.activePageLayout === "AZ" ? "lg:col-span-3" : "",
+              $setup.activePageLayout === "BZ" ? "xl:col-span-3 2xl:col-span-4" : "",
+              $setup.activePageLayout === "CZ" ? "xl:col-span-2 2xl:col-span-3" : "",
+              $setup.activePageLayout === "A" ? "lg:col-span-6" : "",
+              $setup.activePageLayout === "B" ? "xl:col-span-3 2xl:col-span-4" : "",
+              $setup.activePageLayout === "C" ? "xl:col-span-2 2xl:col-span-3" : "",
               "grow grid gap-well col-span-6"
             ])
           }, [
             $setup.preloadChecks.serverInfo.finished && $setup.preloadChecks.diskInfo.finished && !$setup.preloadChecks.serverInfo.failed && !$setup.preloadChecks.diskInfo.failed && $setup.preloadChecks.pageStatus.ready ? (openBlock(), createBlock(_component_DiskSection, { key: 0 })) : createCommentVNode("", true)
           ], 2)) : createCommentVNode("", true),
-          $setup.preloadChecks.zfs.finished && !$setup.preloadChecks.zfs.failed && !$setup.preloadChecks.serverInfo.failed && !$setup.preloadChecks.diskInfo.failed && $setup.preloadChecks.pageStatus.ready ? (openBlock(), createElementBlock("div", {
+          $setup.preloadChecks.zfs.finished && !$setup.preloadChecks.zfs.failed && !$setup.preloadChecks.serverInfo.failed && !$setup.preloadChecks.diskInfo.failed && $setup.selectedDiskHasZfs && $setup.preloadChecks.pageStatus.ready ? (openBlock(), createElementBlock("div", {
             key: 1,
             class: normalizeClass([
-              $setup.pageLayout === "AZ" ? "lg:col-span-3" : "",
-              $setup.pageLayout === "BZ" ? "lg:col-span-6" : "",
-              $setup.pageLayout === "CZ" ? "lg:col-span-6" : "",
+              $setup.activePageLayout === "AZ" ? "lg:col-span-3" : "",
+              $setup.activePageLayout === "BZ" ? "lg:col-span-6" : "",
+              $setup.activePageLayout === "CZ" ? "lg:col-span-6" : "",
               "grow grid gap-well col-span-6"
             ])
           }, [

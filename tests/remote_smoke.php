@@ -494,6 +494,39 @@ if ($fixture_path !== '') {
   }
 }
 
+// Scenario 9: HL15 fallback detection + auto alias generation without vendor tooling.
+$ctx_hl15 = create_context('hl15-fallback');
+set_common_env($ctx_hl15, $fixtures);
+@unlink($ctx_hl15['alias_file']);
+putenv('DRIVEMAP_SERVER_MODEL');
+putenv('DRIVEMAP_CHASSIS_SIZE');
+putenv('DRIVEMAP_ALIAS_STYLE');
+$hl15_lspci = implode("\n", [
+  '02:00.0 Serial Attached SCSI controller: Broadcom / LSI SAS3416 Fusion-MPT Tri-Mode I/O Controller Chip (IOC) (rev 01)',
+  "\tSubsystem: Broadcom / LSI HBA 9400-16i",
+  "\tKernel driver in use: mpt3sas",
+  "\tKernel modules: mpt3sas",
+]) . "\n";
+[$hl15_code] = run_php_script($map_script, [
+  'DRIVEMAP_PRODUCT_NAME' => 'MW34-SP0-00',
+  'DRIVEMAP_BOARD_NAME' => 'MW34-SP0-00',
+  'DRIVEMAP_BOARD_VENDOR' => '45Drives',
+  'DRIVEMAP_LSPCI_VERBOSE' => $hl15_lspci,
+]);
+assert_equal($hl15_code, 0, 'hl15 fallback map generator exits successfully');
+$hl15_aliases = alias_lines_from_file($ctx_hl15['alias_file']);
+assert_equal(count($hl15_aliases), 15, 'hl15 fallback generates fifteen aliases');
+$hl15_server = load_json_file($ctx_hl15['out_dir'] . '/server_info.json');
+assert_true(is_array($hl15_server), 'hl15 fallback server_info parses as JSON');
+assert_equal($hl15_server['Model'] ?? '', 'HomeLab-HL15', 'hl15 fallback model');
+assert_equal($hl15_server['Alias Style'] ?? '', 'HOMELAB', 'hl15 fallback alias style');
+assert_equal($hl15_server['Chassis Size'] ?? '', 'HL15', 'hl15 fallback chassis');
+assert_equal($hl15_server['HBA'][0]['Model'] ?? '', 'HBA 9400-16i', 'hl15 fallback hba model');
+assert_equal($hl15_server['HBA'][0]['Bus Address'] ?? '', '0000:02:00.0', 'hl15 fallback hba bus');
+$hl15_map = load_json_file($ctx_hl15['out_dir'] . '/drivemap.json');
+assert_true(is_array($hl15_map), 'hl15 fallback drivemap parses as JSON');
+assert_equal(slot_count($hl15_map['rows'] ?? []), 15, 'hl15 fallback drivemap contains 15 bays');
+
 if ($failures > 0) {
   fwrite(STDERR, "\n$failures test(s) failed.\n");
   exit(1);

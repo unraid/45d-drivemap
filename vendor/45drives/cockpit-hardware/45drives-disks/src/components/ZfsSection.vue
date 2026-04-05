@@ -308,16 +308,6 @@
         </div>
       </div>
     </div>
-    <div
-      v-else-if="currentDisk != ''"
-      class="card-body grow flex justify-center items-center"
-    >
-      <div class="p-5 bg-accent rounded-lg">
-        <span class="text-muted"
-          >Disk '{{ currentDisk }}' is not a member of a zpool.
-        </span>
-      </div>
-    </div>
     <div v-else class="card-body grow flex justify-center items-center">
       <div class="p-5 bg-accent rounded-lg">
         <span class="text-muted">Click on a disk for more detail.</span>
@@ -327,7 +317,7 @@
 </template>
 
 <script>
-import { ref, reactive, watch, inject } from "vue";
+import { watch, inject } from "vue";
 export default {
   setup() {
     const currentDisk = inject("currentDisk");

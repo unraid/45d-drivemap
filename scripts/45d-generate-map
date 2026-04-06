@@ -21,6 +21,11 @@ if (!is_file($default_server_info_generator)) {
   $default_server_info_generator = __DIR__ . '/45d-generate-server-info';
 }
 $server_info_generator = getenv('DRIVEMAP_SERVER_INFO_GENERATOR') ?: $default_server_info_generator;
+$default_vdev_id_generator = '/usr/local/emhttp/plugins/45d-drivemap/scripts/45d-generate-vdev-id';
+if (!is_file($default_vdev_id_generator)) {
+  $default_vdev_id_generator = __DIR__ . '/45d-generate-vdev-id';
+}
+$vdev_id_generator = getenv('DRIVEMAP_VDEV_ID_GENERATOR') ?: $default_vdev_id_generator;
 
 @mkdir($output_dir, 0755, true);
 
@@ -37,13 +42,42 @@ function script_command($script)
   }
   $is_php = (bool)preg_match('/php/i', $first_line);
   if ($is_php) {
-    $php = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+    $php = '/usr/bin/php';
+    if (
+      PHP_SAPI === 'cli' &&
+      defined('PHP_BINARY') &&
+      PHP_BINARY &&
+      is_executable(PHP_BINARY)
+    ) {
+      $php = PHP_BINARY;
+    } elseif (!is_executable($php)) {
+      $php = 'php';
+    }
     return escapeshellarg($php) . ' ' . escapeshellarg($script);
   }
   if (is_executable($script)) {
     return escapeshellarg($script);
   }
   return null;
+}
+
+function run_vdev_id_generator($script, $server_info_path, $output_path)
+{
+  if (!is_file($script)) {
+    return [1, ['Alias generator script not found: ' . $script]];
+  }
+  $command = script_command($script);
+  if ($command === null) {
+    return [1, ['Alias generator script not found or not executable: ' . $script]];
+  }
+  $prefix = [
+    'DRIVEMAP_DMAP_SERVER_INFO=' . escapeshellarg($server_info_path),
+    'DRIVEMAP_DMAP_OUTPUT=' . escapeshellarg($output_path),
+  ];
+  $output = [];
+  $code = 0;
+  exec(implode(' ', $prefix) . ' ' . $command . ' 2>&1', $output, $code);
+  return [$code, $output];
 }
 
 if (is_file($server_info_generator)) {
@@ -57,6 +91,16 @@ if (is_file($server_info_generator)) {
   }
   if ($server_code !== 0 && $server_output) {
     log_line($log_file, 'server_info generation failed: ' . implode(' | ', $server_output));
+  }
+}
+
+$server_info_path = rtrim($output_dir, '/') . '/server_info.json';
+if (!is_file($alias_file) && is_file($vdev_id_generator) && is_file($server_info_path)) {
+  [$alias_code, $alias_output] = run_vdev_id_generator($vdev_id_generator, $server_info_path, $alias_file);
+  if ($alias_code !== 0) {
+    log_line($log_file, 'alias generation failed: ' . implode(' | ', $alias_output));
+  } else {
+    log_line($log_file, 'alias file generated: ' . $alias_file);
   }
 }
 
@@ -117,30 +161,40 @@ function load_lsblk_map($lsblk_source)
 
 function load_disks_ini_map($paths)
 {
-  $sections = [];
+  $map = [];
   foreach ($paths as $path) {
     if (!is_file($path)) {
       continue;
     }
     $ini = @parse_ini_file($path, true);
-    if (is_array($ini)) {
-      $sections = array_merge($sections, $ini);
+    if (!is_array($ini)) {
+      continue;
     }
-  }
 
-  $map = [];
-  foreach ($sections as $section) {
-    if (!is_array($section)) {
-      continue;
+    foreach ($ini as $section_name => $section) {
+      if (!is_array($section) || !isset($section['device'])) {
+        continue;
+      }
+
+      $device = (string)$section['device'];
+      if ($device === '') {
+        continue;
+      }
+
+      $section['_section'] = (string)$section_name;
+      $section['_source'] = basename($path);
+
+      if (!isset($map[$device])) {
+        $map[$device] = $section;
+        continue;
+      }
+
+      foreach ($section as $key => $value) {
+        if (!isset($map[$device][$key]) || $map[$device][$key] === '' || $map[$device][$key] === '*') {
+          $map[$device][$key] = $value;
+        }
+      }
     }
-    if (!isset($section['device'])) {
-      continue;
-    }
-    $device = (string)$section['device'];
-    if ($device === '') {
-      continue;
-    }
-    $map[$device] = $section;
   }
 
   return $map;
@@ -180,6 +234,53 @@ function disk_type($device, $lsblk_map, $disks_map, $sys_block_root)
     }
   }
   return '';
+}
+
+function storage_details($device, $disks_map)
+{
+  $details = [
+    'storage-role' => '',
+    'storage-label' => '',
+    'fs-type' => '',
+    'fs-status' => '',
+    'fs-mountpoint' => '',
+  ];
+
+  if (!isset($disks_map[$device]) || !is_array($disks_map[$device])) {
+    return $details;
+  }
+
+  $disk = $disks_map[$device];
+  $section = strtolower(trim((string)($disk['_section'] ?? '')));
+  $type = strtolower(trim((string)($disk['type'] ?? '')));
+  $source = strtolower(trim((string)($disk['_source'] ?? '')));
+  $details['storage-label'] = (string)($disk['name'] ?? ($disk['_section'] ?? ''));
+  $details['fs-type'] = (string)($disk['fsType'] ?? '');
+  $details['fs-status'] = (string)($disk['fsStatus'] ?? '');
+  $details['fs-mountpoint'] = (string)($disk['fsMountpoint'] ?? '');
+
+  if ($section === '') {
+    return $details;
+  }
+
+  if (preg_match('/^disk\d+$/', $section)) {
+    $details['storage-role'] = 'array';
+  } elseif ($section === 'parity' || $section === 'parity2' || $type === 'parity') {
+    $details['storage-role'] = 'parity';
+  } elseif (
+    $section === 'boot' ||
+    $section === 'flash' ||
+    $type === 'boot' ||
+    (isset($disk['bootPool']) && (string)$disk['bootPool'] === 'yes')
+  ) {
+    $details['storage-role'] = 'boot';
+  } elseif ($source === 'devs.ini') {
+    $details['storage-role'] = 'unassigned';
+  } else {
+    $details['storage-role'] = 'pool';
+  }
+
+  return $details;
 }
 
 function load_json_file($path)
@@ -589,6 +690,11 @@ foreach ($aliases as $alias) {
     'power-on-time' => '',
     'health' => '',
     'disk_type' => '',
+    'storage-role' => '',
+    'storage-label' => '',
+    'fs-type' => '',
+    'fs-status' => '',
+    'fs-mountpoint' => '',
   ];
 
   if (is_link($path)) {
@@ -620,6 +726,7 @@ foreach ($aliases as $alias) {
       }
 
       $slot['disk_type'] = disk_type($device, $lsblk_map, $disks_map, $sys_block_root);
+      $slot = array_merge($slot, storage_details($device, $disks_map));
 
       if (!$disable_smart) {
         apply_smart_data($slot, smart_data($slot['dev'], $smartctl_dir));

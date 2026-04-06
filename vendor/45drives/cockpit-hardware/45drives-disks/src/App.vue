@@ -3,7 +3,7 @@ import "@fontsource/red-hat-text/600.css";
 import "@fontsource/red-hat-text/400.css";
 import FfdHeader from "./components/FfdHeader.vue";
 import DebugBox from "./components/DebugBox.vue";
-import { ref, reactive, provide, inject, onMounted } from "vue";
+import { ref, reactive, provide, inject, onMounted, computed } from "vue";
 import ServerSection from "./components/ServerSection.vue";
 import DiskSection from "./components/DiskSection.vue";
 import CanvasSection from "./components/CanvasSection.vue";
@@ -45,6 +45,23 @@ export default {
     provide("enableZfsAnimations", enableZfsAnimations);
     const pageLayout = ref("AZ");
     provide("pageLayout", pageLayout);
+    const selectedDiskHasZfs = computed(() => {
+      if (!currentDisk.value || !zfsInfo.zfs_disks) {
+        return false;
+      }
+
+      return Object.prototype.hasOwnProperty.call(
+        zfsInfo.zfs_disks,
+        currentDisk.value
+      );
+    });
+    const activePageLayout = computed(() => {
+      if (selectedDiskHasZfs.value) {
+        return pageLayout.value;
+      }
+
+      return pageLayout.value.replace("Z", "");
+    });
 
     const notifications = ref();
     provide("Notifications", notifications);
@@ -526,6 +543,8 @@ export default {
       zfsInfo,
       enableZfsAnimations,
       pageLayout,
+      activePageLayout,
+      selectedDiskHasZfs,
       notifications,
     };
   },
@@ -552,12 +571,12 @@ export default {
       <div class="gap-well grid grid-cols-6">
         <div
           :class="[
-            pageLayout === 'AZ' ? 'lg:col-span-6' : '',
-            pageLayout === 'BZ' ? 'xl:col-span-3 2xl:col-span-2' : '',
-            pageLayout === 'CZ' ? 'xl:col-span-4 2xl:col-span-3' : '',
-            pageLayout === 'A' ? 'lg:col-span-6' : '',
-            pageLayout === 'B' ? 'xl:col-span-3 2xl:col-span-2' : '',
-            pageLayout === 'C' ? 'xl:col-span-4 2xl:col-span-3' : '',
+            activePageLayout === 'AZ' ? 'lg:col-span-6' : '',
+            activePageLayout === 'BZ' ? 'xl:col-span-3 2xl:col-span-2' : '',
+            activePageLayout === 'CZ' ? 'xl:col-span-4 2xl:col-span-3' : '',
+            activePageLayout === 'A' ? 'lg:col-span-6' : '',
+            activePageLayout === 'B' ? 'xl:col-span-3 2xl:col-span-2' : '',
+            activePageLayout === 'C' ? 'xl:col-span-4 2xl:col-span-3' : '',
             'grow grid gap-well col-span-6',
           ]"
         >
@@ -586,12 +605,12 @@ export default {
             preloadChecks.pageStatus.ready
           "
           :class="[
-            pageLayout === 'AZ' ? 'lg:col-span-3' : '',
-            pageLayout === 'BZ' ? 'xl:col-span-3 2xl:col-span-4' : '',
-            pageLayout === 'CZ' ? 'xl:col-span-2 2xl:col-span-3' : '',
-            pageLayout === 'A' ? 'lg:col-span-6' : '',
-            pageLayout === 'B' ? 'xl:col-span-3 2xl:col-span-4' : '',
-            pageLayout === 'C' ? 'xl:col-span-2 2xl:col-span-3' : '',
+            activePageLayout === 'AZ' ? 'lg:col-span-3' : '',
+            activePageLayout === 'BZ' ? 'xl:col-span-3 2xl:col-span-4' : '',
+            activePageLayout === 'CZ' ? 'xl:col-span-2 2xl:col-span-3' : '',
+            activePageLayout === 'A' ? 'lg:col-span-6' : '',
+            activePageLayout === 'B' ? 'xl:col-span-3 2xl:col-span-4' : '',
+            activePageLayout === 'C' ? 'xl:col-span-2 2xl:col-span-3' : '',
             'grow grid gap-well col-span-6',
           ]"
         >
@@ -612,12 +631,13 @@ export default {
             !preloadChecks.zfs.failed &&
             !preloadChecks.serverInfo.failed &&
             !preloadChecks.diskInfo.failed &&
+            selectedDiskHasZfs &&
             preloadChecks.pageStatus.ready
           "
           :class="[
-            pageLayout === 'AZ' ? 'lg:col-span-3' : '',
-            pageLayout === 'BZ' ? 'lg:col-span-6' : '',
-            pageLayout === 'CZ' ? 'lg:col-span-6' : '',
+            activePageLayout === 'AZ' ? 'lg:col-span-3' : '',
+            activePageLayout === 'BZ' ? 'lg:col-span-6' : '',
+            activePageLayout === 'CZ' ? 'lg:col-span-6' : '',
             'grow grid gap-well col-span-6',
           ]"
         >

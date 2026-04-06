@@ -5861,6 +5861,11 @@ const _sfc_main$u = {
     const lsdevJson = inject("lsdevJson");
     const diskInfo = inject("diskInfo");
     const loadingSpinner = ref(true);
+    /* Manual bundle sync note: this compiled block mirrors the storageRoleLabel
+       and hasStorageDetails additions from DiskSection.vue because private
+       @45drives package auth can block local rebuilds. See docs/bundle-patching.md
+       for the upstream source/bundle pair, the locate-and-replace steps, and
+       the verification commands used after patching this asset in place. */
     const storageRoleLabel = computed(() => {
       switch (diskObj["storage-role"]) {
         case "array":
@@ -5893,6 +5898,7 @@ const _sfc_main$u = {
         return;
       }
       loadingSpinner.value = lsdevJson.rows ? false : true;
+      Object.keys(diskObj).forEach((key) => delete diskObj[key]);
       Object.assign(diskObj, tmpObj);
     };
     watch(currentDisk, updateDiskObj);

@@ -294,6 +294,7 @@ export default {
         return;
       }
       loadingSpinner.value = lsdevJson.rows ? false : true;
+      Object.keys(diskObj).forEach((key) => delete diskObj[key]);
       Object.assign(diskObj, tmpObj);
     };
 

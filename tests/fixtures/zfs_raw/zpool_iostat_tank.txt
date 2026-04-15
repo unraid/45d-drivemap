@@ -1,0 +1,7 @@
+                                         capacity     operations     bandwidth
+pool                                   alloc   free   read  write   read  write
+-------------------------------------  -----  -----  -----  -----  -----  -----
+tank                                   10G    90G    1      2      10M    20M
+  mirror-0                             10G    90G    1      2      10M    20M
+    sda1                               5G     45G    1      2      5M     10M
+    sdb1                               5G     45G    1      2      5M     10M

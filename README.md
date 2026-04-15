@@ -6,9 +6,9 @@ map/server metadata on the Unraid host.
 ## Stable Plugin Links
 
 - Install / update URL (stable latest):
-  - `https://github.com/pujitm/45d-drivemap-unraid/releases/latest/download/45d-drivemap.plg`
+  - `https://github.com/unraid/45d-drivemap/releases/latest/download/45d-drivemap.plg`
 - Release history (version-specific assets):
-  - `https://github.com/pujitm/45d-drivemap-unraid/releases`
+  - `https://github.com/unraid/45d-drivemap/releases`
 
 ## What This Plugin Does
 
@@ -26,7 +26,7 @@ map/server metadata on the Unraid host.
 1. In Unraid, open **Plugins**.
 2. Choose **Install Plugin**.
 3. Paste the stable URL:
-   - `https://github.com/pujitm/45d-drivemap-unraid/releases/latest/download/45d-drivemap.plg`
+   - `https://github.com/unraid/45d-drivemap/releases/latest/download/45d-drivemap.plg`
 4. Install, then open **Main** and scroll to **Drive Map** (top section).
 5. Click **Refresh** in the Drive Map toolbar to force regeneration if needed.
 

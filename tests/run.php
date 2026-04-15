@@ -543,6 +543,16 @@ assert_equal($zfs_info['zpools'][0]['name'], 'tank', 'zfs_info pool name');
 assert_true(isset($zfs_info['zfs_disks']), 'zfs_info includes disk map');
 assert_true(isset($zfs_info['zfs_disks']['1-1']), 'zfs_info includes disk 1-1');
 
+putenv('DRIVEMAP_ZFS_FIXTURE_DIR=' . $fixtures . '/zfs_raw');
+[$zfs_raw_code, $zfs_raw_body] = run_api_action($root, 'zfs_info');
+assert_equal($zfs_raw_code, 0, 'zfs_info raw-device endpoint exits successfully');
+$zfs_raw_info = json_decode($zfs_raw_body, true);
+assert_true(is_array($zfs_raw_info), 'zfs_info raw-device endpoint returns JSON');
+assert_true(isset($zfs_raw_info['zfs_disks']['1-1']), 'raw-device zfs_info maps sda1 to bay 1-1');
+assert_true(isset($zfs_raw_info['zfs_disks']['1-2']), 'raw-device zfs_info maps sdb1 to bay 1-2');
+assert_true(!isset($zfs_raw_info['zfs_disks']['sda1']), 'raw-device zfs_info does not expose raw sda1 key');
+assert_true(empty($zfs_raw_info['warnings']), 'raw-device zfs_info suppresses alias warning when drivemap can resolve devices');
+
 // Scenario 2: SMART-derived fields.
 putenv('DRIVEMAP_SMARTCTL_DIR=' . $fixtures . '/smart');
 [$smart_code] = run_php_script($map_script);

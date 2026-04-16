@@ -553,6 +553,25 @@ assert_true(isset($zfs_raw_info['zfs_disks']['1-2']), 'raw-device zfs_info maps 
 assert_true(!isset($zfs_raw_info['zfs_disks']['sda1']), 'raw-device zfs_info does not expose raw sda1 key');
 assert_true(empty($zfs_raw_info['warnings']), 'raw-device zfs_info suppresses alias warning when drivemap can resolve devices');
 
+require_once $root . '/php/zfs_info.php';
+$lookup_refresh_path = $ctx['out_dir'] . '/zfs_lookup_refresh.json';
+file_put_contents($lookup_refresh_path, json_encode([
+  'rows' => [[
+    ['bay-id' => '9-1', 'dev' => '/dev/sdz', 'dev-by-path' => '/dev/disk/by-path/test-zfs-refresh'],
+  ]],
+]));
+putenv('DRIVEMAP_OUTPUT_FILE=' . $lookup_refresh_path);
+$first_lookup = zfs_drivemap_lookup();
+assert_equal($first_lookup['/dev/sdz'] ?? null, '9-1', 'zfs drivemap lookup reads initial map');
+file_put_contents($lookup_refresh_path, json_encode([
+  'rows' => [[
+    ['bay-id' => '9-2', 'dev' => '/dev/sdz', 'dev-by-path' => '/dev/disk/by-path/test-zfs-refresh'],
+  ]],
+]));
+$second_lookup = zfs_drivemap_lookup();
+assert_equal($second_lookup['/dev/sdz'] ?? null, '9-2', 'zfs drivemap lookup refreshes regenerated map');
+putenv('DRIVEMAP_OUTPUT_FILE');
+
 // Scenario 2: SMART-derived fields.
 putenv('DRIVEMAP_SMARTCTL_DIR=' . $fixtures . '/smart');
 [$smart_code] = run_php_script($map_script);

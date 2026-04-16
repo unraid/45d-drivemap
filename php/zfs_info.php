@@ -40,11 +40,6 @@ function zfs_load_json($path)
 
 function zfs_drivemap_lookup()
 {
-  static $lookup = null;
-  if (is_array($lookup)) {
-    return $lookup;
-  }
-
   $lookup = [];
   $map_path = getenv('DRIVEMAP_OUTPUT_FILE');
   if (!$map_path) {

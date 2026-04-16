@@ -322,9 +322,61 @@ function model_from_parts($prefix, $style, $chassis)
   return $prefix . '-' . $chassis;
 }
 
+function canvas_model_from_server_info($server_info)
+{
+  if (!is_array($server_info)) {
+    return '';
+  }
+  if (isset($server_info['Canvas Model']) && is_string($server_info['Canvas Model']) && $server_info['Canvas Model'] !== '') {
+    return $server_info['Canvas Model'];
+  }
+
+  $model = isset($server_info['Model']) && is_string($server_info['Model']) ? $server_info['Model'] : '';
+  $style = isset($server_info['Alias Style']) && is_string($server_info['Alias Style']) ? strtoupper($server_info['Alias Style']) : '';
+  $chassis = isset($server_info['Chassis Size']) && is_string($server_info['Chassis Size']) ? strtoupper($server_info['Chassis Size']) : '';
+
+  if ($style !== '' && $chassis !== '' && $chassis !== '?') {
+    $prefix = '';
+    if (preg_match('/\b(Storinator|Stornado|HomeLab|Professional|Proxinator|Studio)\b/i', $model, $matches)) {
+      $prefix_map = [
+        'storinator' => 'Storinator',
+        'stornado' => 'Stornado',
+        'homelab' => 'HomeLab',
+        'professional' => 'Professional',
+        'proxinator' => 'Proxinator',
+        'studio' => 'Studio',
+      ];
+      $prefix = $prefix_map[strtolower($matches[1])] ?? $matches[1];
+    }
+    if ($prefix === '') {
+      $prefix = [
+        'HOMELAB' => 'HomeLab',
+        'PROFESSIONAL' => 'Professional',
+        'STUDIO' => 'Studio',
+        'BYPATH' => strpos($chassis, 'VM') === 0 ? 'Proxinator' : 'Storinator',
+      ][$style] ?? 'Storinator';
+    }
+    return model_from_parts($prefix, $style, $chassis);
+  }
+
+  return $model !== '' ? $model : '';
+}
+
+function copy_server_info_with_canvas_model($source_file, $output_file)
+{
+  $contents = @file_get_contents($source_file);
+  $server_info = is_string($contents) ? json_decode($contents, true) : null;
+  if (!is_array($server_info)) {
+    return @copy($source_file, $output_file);
+  }
+
+  $server_info['Canvas Model'] = canvas_model_from_server_info($server_info);
+  return file_put_contents($output_file, json_encode($server_info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n") !== false;
+}
+
 if (is_file($source_file)) {
   // Prefer exact vendor output when present.
-  @copy($source_file, $output_file);
+  copy_server_info_with_canvas_model($source_file, $output_file);
   log_line($log_file, 'server_info copied from ' . $source_file);
   exit(0);
 }
@@ -335,7 +387,7 @@ if (is_executable($vendor_server_identifier)) {
   // If vendor tool can generate the source file, consume it directly.
   exec(escapeshellarg($vendor_server_identifier) . ' 2>&1', $vendor_output, $vendor_code);
   if ($vendor_code === 0 && is_file($source_file)) {
-    @copy($source_file, $output_file);
+    copy_server_info_with_canvas_model($source_file, $output_file);
     log_line($log_file, 'server_info copied after server_identifier run');
     exit(0);
   }
@@ -375,6 +427,7 @@ $model = $force_model !== '' ? $force_model : ($profile['model'] ?? model_from_p
 $server_info = [
   // Keep output compatible with the embedded 45Drives frontend contract.
   'Model' => $model !== '' ? $model : '?',
+  'Canvas Model' => model_from_parts($prefix, $alias_style, $chassis),
   'Chassis Size' => $chassis !== '' ? $chassis : '?',
   'Alias Style' => $alias_style !== '' ? $alias_style : '?',
   'Serial' => $serial !== '' ? $serial : '?',

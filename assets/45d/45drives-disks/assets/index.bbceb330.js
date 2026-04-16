@@ -36576,18 +36576,16 @@ const _sfc_main$2 = {
   },
   setup(props) {
     const serverModel = ref(props.serverInfo.Model);
+    const canvasModel = ref(props.serverInfo["Canvas Model"] || props.serverInfo.Model);
     const enableZfsAnimations = inject("enableZfsAnimations");
     const zfsInfo = inject("zfsInfo");
     const enableSketch = (modelString) => {
-      if (/45\s*Homelab\s+X-?15/i.test(modelString)) {
-        return "HomeLabHL15";
-      }
       let testString = /(Storinator|Stornado|HomeLab|Professional|Proxinator)-(H8)?(H16|H32)?-?(HL15|HL4|HL8|PRO15|PRO4|PRO8|AV15|Q30|S45|XL60|F2|2U|MI4|C8|F8X1|F8X2|F8X3|VM8|VM16|VM32)/m.exec(modelString);
       let enableString = testString ? testString[1] + testString[4] + (testString[3] ? testString[3] : "") : "";
       return enableString;
     };
     const canvasCardBody = ref();
-    const activeSketchStr = enableSketch(serverModel.value);
+    const activeSketchStr = enableSketch(canvasModel.value);
     watch(enableZfsAnimations, () => {
     });
     return {

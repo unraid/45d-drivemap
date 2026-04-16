@@ -141,6 +141,10 @@ export default {
     const zfsInfo = inject("zfsInfo");
 
     const enableSketch = (modelString) => {
+      if (/45\s*Homelab\s+X-?15/i.test(modelString)) {
+        return "HomeLabHL15";
+      }
+
       let testString =
         /(Storinator|Stornado|HomeLab|Professional|Proxinator|Studio)-(H8)?(H16|H32)?-?(HL15_BEAST|HL15|HL4|HL8|PRO15|PRO4|PRO8|AV15|Q30|S45|XL60|F2|2U|MI4|C8|F8X1|F8X2|F8X3|VM8|VM16|VM32|STUDIO8|F16|VM2)/m.exec(
           modelString

@@ -733,7 +733,7 @@ $hl15_alias_lines = alias_lines_from_fixture($ctx_hl15['alias_file']);
 assert_equal(count($hl15_alias_lines), 15, 'hl15 fallback generates fifteen aliases');
 $hl15_server = load_json_file($ctx_hl15['out_dir'] . '/server_info.json');
 assert_true(is_array($hl15_server), 'hl15 fallback server_info parses as JSON');
-assert_equal($hl15_server['Model'] ?? '', 'HomeLab-HL15', 'hl15 fallback model');
+assert_equal($hl15_server['Model'] ?? '', 'Unraid >< 45Homelab X-15', 'hl15 fallback model');
 assert_equal($hl15_server['Alias Style'] ?? '', 'HOMELAB', 'hl15 fallback alias style');
 assert_equal($hl15_server['Chassis Size'] ?? '', 'HL15', 'hl15 fallback chassis');
 assert_equal($hl15_server['HBA'][0]['Model'] ?? '', 'HBA 9400-16i', 'hl15 fallback hba model');

@@ -304,7 +304,7 @@ function hardware_profile($product_name, $board_name, $hbas)
         'prefix' => 'HomeLab',
         'style' => 'HOMELAB',
         'chassis' => 'HL15',
-        'model' => 'HomeLab-HL15',
+        'model' => 'Unraid >< 45Homelab X-15',
       ];
     }
   }

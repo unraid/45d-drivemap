@@ -23218,6 +23218,14 @@ function zfsAnimation(p5) {
     dev_unavail: {
       start: p5.color(239, 68, 68, 192),
       end: p5.color(244, 63, 94, 0)
+    },
+    storage_active: {
+      start: p5.color(59, 130, 246, 160),
+      end: p5.color(96, 165, 250, 0)
+    },
+    storage_group: {
+      start: p5.color(14, 165, 233, 120),
+      end: p5.color(56, 189, 248, 200)
     }
   };
   p5.animateZpools = (x, y, w, h2, steps, index2, from, to, zfsAnimationDir) => {
@@ -23250,11 +23258,31 @@ function zfsAnimation(p5) {
     p5.rect(x, y, w, h2);
     p5.pop();
   };
-  p5.showZfs = (cd, zfsInfo, diskLocations2, y_offset = 0) => {
+  p5.showStorageActivity = (cd, animationInfo, diskLocations2, y_offset = 0) => {
+    const currentDisk = animationInfo?.animation_disks?.[cd];
+    const group = animationInfo?.animation_groups?.[currentDisk?.group] || [];
+    if (!currentDisk || group.length === 0) {
+      return false;
+    }
+    p5.updateZfsAnimationState();
+    group.forEach((dsk) => {
+      const dsk_idx = diskLocations2.findIndex((loc) => loc.BAY === dsk.name);
+      if (dsk_idx < 0 || !diskLocations2[dsk_idx]?.image)
+        return;
+      const loc = diskLocations2[dsk_idx];
+      if (dsk.name === cd) {
+        p5.animateVdevs(loc.x, loc.y, loc.image.width, loc.image.height + y_offset, p5.zfsAnimationSteps, p5.zfsAnimationIndex, p5.zfsAnimationColors.storage_active.start, p5.zfsAnimationColors.storage_active.end);
+        return;
+      }
+      p5.animateZpools(loc.x, loc.y, loc.image.width, loc.image.height + y_offset, p5.zfsAnimationSteps, p5.zfsAnimationIndex, p5.zfsAnimationColors.storage_group.start, p5.zfsAnimationColors.storage_group.end, p5.zfsAnimationDir);
+    });
+    return true;
+  };
+  p5.showAnimations = (cd, zfsInfo, diskLocations2, y_offset = 0) => {
     if (zfsInfo.zfs_installed) {
-      if (zfsInfo.zfs_disks && zfsInfo.zfs_disks[cd]) {
+      if (Array.isArray(zfsInfo.zpools) && zfsInfo.zfs_disks && zfsInfo.zfs_disks[cd]) {
         let pool_idx = zfsInfo.zpools.findIndex((pool) => pool.name === zfsInfo.zfs_disks[cd].zpool_name);
-        if (typeof pool_idx != "undefined") {
+        if (pool_idx >= 0 && zfsInfo.zpools[pool_idx]) {
           p5.updateZfsAnimationState();
           zfsInfo.zpools[pool_idx].vdevs[zfsInfo.zfs_disks[cd].vdev_idx].disks.forEach((dsk) => {
             let dsk_idx = diskLocations2.findIndex((loc) => loc.BAY === dsk.name);
@@ -23300,10 +23328,13 @@ function zfsAnimation(p5) {
               }
             });
           });
+          return true;
         }
       }
     }
+    return p5.showStorageActivity(cd, zfsInfo, diskLocations2, y_offset);
   };
+  p5.showZfs = p5.showAnimations;
 }
 function loadingAnimation(p5) {
   p5.loadingAnimationSteps = 20;
@@ -36572,7 +36603,7 @@ const _hoisted_1$2 = {
 const _hoisted_2$2 = { class: "card-header flex flex-row items-center" };
 const _hoisted_3$2 = /* @__PURE__ */ createBaseVNode("h3", { class: "text-header text-default" }, "Disk Viewer", -1);
 const _hoisted_4$2 = /* @__PURE__ */ createBaseVNode("div", { class: "grow" }, null, -1);
-const _hoisted_5$2 = /* @__PURE__ */ createBaseVNode("span", { class: "text-sm font-medium text-default" }, "Show ZFS Animations", -1);
+const _hoisted_5$2 = /* @__PURE__ */ createBaseVNode("span", { class: "text-sm font-medium text-default" }, "Show Animations", -1);
 const _hoisted_6$2 = {
   key: 0,
   ref: "canvasCardBody",
@@ -36618,8 +36649,7 @@ function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
     createBaseVNode("div", _hoisted_2$2, [
       _hoisted_3$2,
       _hoisted_4$2,
-      $setup.zfsInfo.zfs_installed ? (openBlock(), createBlock(_component_SwitchGroup, {
-        key: 0,
+      (openBlock(), createBlock(_component_SwitchGroup, {
         as: "div",
         class: "flex items-center"
       }, {
@@ -36654,7 +36684,7 @@ function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
           })
         ]),
         _: 1
-      })) : createCommentVNode("", true)
+      }))
     ]),
     $setup.activeSketchStr ? (openBlock(), createElementBlock("div", _hoisted_6$2, [
       $setup.activeSketchStr === "StornadoF2" ? (openBlock(), createBlock(_component_P5StornadoF2, { key: 0 })) : createCommentVNode("", true),
@@ -36964,6 +36994,46 @@ const _sfc_main = {
     provide("Notifications", notifications);
     const delay = (s) => new Promise((res) => setTimeout(res, s * 1e3));
     let watchInitiated = false;
+    const animationGroupKey = (slot) => {
+      if (!slot || !slot.occupied)
+        return "";
+      const role = slot["storage-role"] || "";
+      const label = slot["storage-label"] || "";
+      const fsType = slot["fs-type"] || "";
+      if (role === "array" || role === "parity")
+        return "unraid-array";
+      if (role === "pool" && label)
+        return `pool:${label}`;
+      if (role === "boot" && label)
+        return `boot:${label}`;
+      if (fsType)
+        return `fs:${fsType}`;
+      if (role)
+        return `role:${role}`;
+      return "";
+    };
+    const updateAnimationInfo = (rows = []) => {
+      const animationDisks = {};
+      const animationGroups = {};
+      rows.flat().forEach((slot) => {
+        const bayId = slot?.["bay-id"];
+        const groupKey = animationGroupKey(slot);
+        if (!bayId || !groupKey)
+          return;
+        const disk = {
+          name: bayId,
+          group: groupKey,
+          role: slot["storage-role"] || "",
+          label: slot["storage-label"] || "",
+          fsType: slot["fs-type"] || ""
+        };
+        animationDisks[bayId] = disk;
+        animationGroups[groupKey] ??= [];
+        animationGroups[groupKey].push(disk);
+      });
+      zfsInfo.animation_disks = animationDisks;
+      zfsInfo.animation_groups = animationGroups;
+    };
     const adminFlag = ref(false);
     const adminCheck = ref(false);
     const preloadChecks = reactive({
@@ -37216,6 +37286,7 @@ const _sfc_main = {
         }).promise();
         let result = JSON.parse(state.stdout);
         Object.assign(diskInfo, result);
+        updateAnimationInfo(result.rows || []);
         preloadChecks.lsdev.content = result;
         preloadChecks.lsdev.finished = true;
         preloadChecks.lsdev.failed = false;

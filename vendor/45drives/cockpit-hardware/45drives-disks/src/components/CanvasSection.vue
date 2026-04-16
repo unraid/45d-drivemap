@@ -3,7 +3,7 @@
     <div class="card-header flex flex-row items-center">
       <h3 class="text-header text-default">Disk Viewer</h3>
       <div class="grow"></div>
-      <SwitchGroup v-if="zfsInfo.zfs_installed" as="div" class="flex items-center">
+      <SwitchGroup as="div" class="flex items-center">
         <Switch v-model="enableZfsAnimations.flag" :class="[
             enableZfsAnimations.flag ? '!bg-red-700 dark:!bg-red-800' : '!bg-neutral-200 dark:!bg-neutral-900',
             'relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none',
@@ -14,7 +14,7 @@
             ]" />
         </Switch>
         <SwitchLabel as="span" class="ml-3">
-          <span class="text-sm font-medium text-default">Show ZFS Animations</span>
+          <span class="text-sm font-medium text-default">Show Animations</span>
         </SwitchLabel>
       </SwitchGroup>
     </div>

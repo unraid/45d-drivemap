@@ -1,4 +1,4 @@
-var __defProp = Object.defineProperty;
+﻿var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
 var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
@@ -5715,15 +5715,19 @@ const _sfc_main$w = {
     const avgTempStr = ref("Loading...");
     const updateDiskSummary = () => {
       if (lsdevJson.rows) {
-        diskCount.value = lsdevJson.rows.flat().filter((slot) => slot.occupied).length;
-        storageCapacity.value = diskCount.value > 0 ? lsdevJson.rows.flat().filter((slot) => slot.occupied).map((disk) => getCapacityGiB(disk.capacity)).reduce((total, cap) => total + cap) : 0;
+        const occupiedDisks = lsdevJson.rows.flat().filter((slot) => slot.occupied);
+        diskCount.value = occupiedDisks.length;
+        storageCapacity.value = diskCount.value > 0 ? occupiedDisks.map((disk) => getCapacityGiB(disk.capacity)).reduce((total, cap) => total + cap) : 0;
         storageCapacityStr.value = storageCapacity.value > 1e3 ? (storageCapacity.value / 1e3).toFixed(2).toString() + " TB" : storageCapacity.value.toString() + " GB";
-        avgTemp.value = diskCount.value > 0 ? (lsdevJson.rows.flat().filter((slot) => slot.occupied).map((disk) => {
+        const tempReadings = occupiedDisks.map((disk) => {
           var _a, _b;
           return Number((_b = (_a = disk["temp-c"]) == null ? void 0 : _a.replace(/[^0-9]/g, "")) != null ? _b : 0);
-        }).reduce((total, cap) => total + cap) / Number(diskCount.value)).toFixed(2) : 0;
-        if (avgTemp.value === 0) {
+        }).filter((temp) => temp > 0);
+        avgTemp.value = tempReadings.length > 0 ? (tempReadings.reduce((total, cap) => total + cap) / Number(tempReadings.length)).toFixed(2) : 0;
+        if (diskCount.value === 0) {
           avgTempStr.value = "No Disks Present";
+        } else if (tempReadings.length === 0) {
+          avgTempStr.value = "All drives are spundown";
         }
       }
     };
@@ -6121,6 +6125,12 @@ function _sfc_render$u(_ctx, _cache, $props, $setup, $data, $options) {
           _hoisted_80,
           createBaseVNode("div", _hoisted_81, [
             $setup.diskObj["health"] ? (openBlock(), createElementBlock("span", _hoisted_82, toDisplayString($setup.diskObj["health"]), 1)) : (openBlock(), createElementBlock("span", _hoisted_83, "N/A"))
+          ])
+        ]),
+        createBaseVNode("div", { class: "grid grid-cols-1 self-start py-1 md:py-2 px-2" }, [
+          createBaseVNode("div", { class: "text-sm text-muted" }, "Power Mode"),
+          createBaseVNode("div", { class: "text-sm break-words" }, [
+            $setup.diskObj["power-mode"] ? (openBlock(), createElementBlock("span", { key: 0 }, toDisplayString($setup.diskObj["power-mode"]), 1)) : (openBlock(), createElementBlock("span", { key: 1 }, "N/A"))
           ])
         ]),
         $setup.hasStorageDetails ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
@@ -23730,6 +23740,7 @@ const _sfc_main$t = {
           return;
         diskLocations$q[index2].occupied = slot.occupied;
         diskLocations$q[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$q[index2].HDD);
+        diskLocations$q[index2].standby = slot["power-mode"] === "STANDBY";
       });
       assets$q.loadingFlag = false;
     }, { immediate: false, deep: true });
@@ -23741,6 +23752,7 @@ const _sfc_main$t = {
           return;
         diskLocations$q[index2].occupied = slot.occupied;
         diskLocations$q[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$q[index2].HDD);
+        diskLocations$q[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(enableZfsAnimations, () => {
@@ -23819,6 +23831,7 @@ const _sfc_main$t = {
           const index2 = diskLocations$q.findIndex((loc) => loc.BAY === slot["bay-id"]);
           diskLocations$q[index2].occupied = slot.occupied;
           diskLocations$q[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$q[index2].HDD);
+        diskLocations$q[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -23838,6 +23851,11 @@ const _sfc_main$t = {
         diskLocations$q.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$q.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height - 14);
             }
@@ -24164,6 +24182,7 @@ const _sfc_main$s = {
           return;
         diskLocations$p[index2].occupied = slot.occupied;
         diskLocations$p[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$p[index2].HDD);
+        diskLocations$p[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -24175,6 +24194,7 @@ const _sfc_main$s = {
           return;
         diskLocations$p[index2].occupied = slot.occupied;
         diskLocations$p[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$p[index2].HDD);
+        diskLocations$p[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -24249,6 +24269,7 @@ const _sfc_main$s = {
             return;
           diskLocations$p[index2].occupied = slot.occupied;
           diskLocations$p[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$p[index2].HDD);
+        diskLocations$p[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -24271,6 +24292,11 @@ const _sfc_main$s = {
         diskLocations$p.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$p.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -24757,6 +24783,7 @@ const _sfc_main$r = {
           return;
         diskLocations$o[index2].occupied = slot.occupied;
         diskLocations$o[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$o[index2].HDD);
+        diskLocations$o[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -24768,6 +24795,7 @@ const _sfc_main$r = {
           return;
         diskLocations$o[index2].occupied = slot.occupied;
         diskLocations$o[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$o[index2].HDD);
+        diskLocations$o[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -24842,6 +24870,7 @@ const _sfc_main$r = {
             return;
           diskLocations$o[index2].occupied = slot.occupied;
           diskLocations$o[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$o[index2].HDD);
+        diskLocations$o[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -24864,6 +24893,11 @@ const _sfc_main$r = {
         diskLocations$o.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$o.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -25510,6 +25544,7 @@ const _sfc_main$q = {
           return;
         diskLocations$n[index2].occupied = slot.occupied;
         diskLocations$n[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$n[index2].HDD);
+        diskLocations$n[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -25521,6 +25556,7 @@ const _sfc_main$q = {
           return;
         diskLocations$n[index2].occupied = slot.occupied;
         diskLocations$n[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$n[index2].HDD);
+        diskLocations$n[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -25595,6 +25631,7 @@ const _sfc_main$q = {
             return;
           diskLocations$n[index2].occupied = slot.occupied;
           diskLocations$n[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$n[index2].HDD);
+        diskLocations$n[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -25617,6 +25654,11 @@ const _sfc_main$q = {
         diskLocations$n.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$n.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -26004,6 +26046,7 @@ const _sfc_main$p = {
           return;
         diskLocations$m[index2].occupied = slot.occupied;
         diskLocations$m[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$m[index2].HDD);
+        diskLocations$m[index2].standby = slot["power-mode"] === "STANDBY";
       });
       assets$m.loadingFlag = false;
     }, { immediate: false, deep: true });
@@ -26015,6 +26058,7 @@ const _sfc_main$p = {
           return;
         diskLocations$m[index2].occupied = slot.occupied;
         diskLocations$m[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$m[index2].HDD);
+        diskLocations$m[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(enableZfsAnimations, () => {
@@ -26089,6 +26133,7 @@ const _sfc_main$p = {
           const index2 = diskLocations$m.findIndex((loc) => loc.BAY === slot["bay-id"]);
           diskLocations$m[index2].occupied = slot.occupied;
           diskLocations$m[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$m[index2].HDD);
+        diskLocations$m[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -26108,6 +26153,11 @@ const _sfc_main$p = {
         diskLocations$m.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$m.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height - 14);
             }
@@ -26532,6 +26582,7 @@ const _sfc_main$o = {
           return;
         diskLocations$l[index2].occupied = slot.occupied;
         diskLocations$l[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$l[index2].HDD);
+        diskLocations$l[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     watch(diskInfo, () => {
@@ -26542,6 +26593,7 @@ const _sfc_main$o = {
           return;
         diskLocations$l[index2].occupied = slot.occupied;
         diskLocations$l[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$l[index2].HDD);
+        diskLocations$l[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     const p5Script = function(p5) {
@@ -26566,6 +26618,7 @@ const _sfc_main$o = {
             return;
           diskLocations$l[index2].occupied = slot.occupied;
           diskLocations$l[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$l[index2].HDD);
+        diskLocations$l[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -26588,6 +26641,11 @@ const _sfc_main$o = {
         diskLocations$l.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$l.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -27031,6 +27089,7 @@ const _sfc_main$n = {
           return;
         diskLocations$k[index2].occupied = slot.occupied;
         diskLocations$k[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$k[index2].HDD);
+        diskLocations$k[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     watch(diskInfo, () => {
@@ -27041,6 +27100,7 @@ const _sfc_main$n = {
           return;
         diskLocations$k[index2].occupied = slot.occupied;
         diskLocations$k[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$k[index2].HDD);
+        diskLocations$k[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     const p5Script = function(p5) {
@@ -27064,6 +27124,7 @@ const _sfc_main$n = {
             return;
           diskLocations$k[index2].occupied = slot.occupied;
           diskLocations$k[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$k[index2].HDD);
+        diskLocations$k[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -27086,6 +27147,11 @@ const _sfc_main$n = {
         diskLocations$k.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$k.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.loadingAnimationIndex);
             }
@@ -27797,6 +27863,7 @@ const _sfc_main$m = {
           return;
         diskLocations$j[index2].occupied = slot.occupied;
         diskLocations$j[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$j[index2].HDD);
+        diskLocations$j[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     watch(diskInfo, () => {
@@ -27807,6 +27874,7 @@ const _sfc_main$m = {
           return;
         diskLocations$j[index2].occupied = slot.occupied;
         diskLocations$j[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$j[index2].HDD);
+        diskLocations$j[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -27881,6 +27949,7 @@ const _sfc_main$m = {
             return;
           diskLocations$j[index2].occupied = slot.occupied;
           diskLocations$j[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$j[index2].HDD);
+        diskLocations$j[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -27903,6 +27972,11 @@ const _sfc_main$m = {
         diskLocations$j.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$j.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -28426,6 +28500,7 @@ const _sfc_main$l = {
           return;
         diskLocations$i[index2].occupied = slot.occupied;
         diskLocations$i[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$i[index2].HDD);
+        diskLocations$i[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     watch(diskInfo, () => {
@@ -28436,6 +28511,7 @@ const _sfc_main$l = {
           return;
         diskLocations$i[index2].occupied = slot.occupied;
         diskLocations$i[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$i[index2].HDD);
+        diskLocations$i[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -28505,6 +28581,7 @@ const _sfc_main$l = {
             return;
           diskLocations$i[index2].occupied = slot.occupied;
           diskLocations$i[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$i[index2].HDD);
+        diskLocations$i[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -28527,6 +28604,11 @@ const _sfc_main$l = {
         diskLocations$i.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$i.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -29117,6 +29199,7 @@ const _sfc_main$k = {
           return;
         diskLocations$h[index2].occupied = slot.occupied;
         diskLocations$h[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$h[index2].HDD);
+        diskLocations$h[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -29128,6 +29211,7 @@ const _sfc_main$k = {
           return;
         diskLocations$h[index2].occupied = slot.occupied;
         diskLocations$h[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$h[index2].HDD);
+        diskLocations$h[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -29202,6 +29286,7 @@ const _sfc_main$k = {
             return;
           diskLocations$h[index2].occupied = slot.occupied;
           diskLocations$h[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$h[index2].HDD);
+        diskLocations$h[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -29224,6 +29309,11 @@ const _sfc_main$k = {
         diskLocations$h.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$h.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -29886,6 +29976,7 @@ const _sfc_main$j = {
           return;
         diskLocations$g[index2].occupied = slot.occupied;
         diskLocations$g[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$g[index2].HDD);
+        diskLocations$g[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -29897,6 +29988,7 @@ const _sfc_main$j = {
           return;
         diskLocations$g[index2].occupied = slot.occupied;
         diskLocations$g[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$g[index2].HDD);
+        diskLocations$g[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -29971,6 +30063,7 @@ const _sfc_main$j = {
             return;
           diskLocations$g[index2].occupied = slot.occupied;
           diskLocations$g[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$g[index2].HDD);
+        diskLocations$g[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -29993,6 +30086,11 @@ const _sfc_main$j = {
         diskLocations$g.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$g.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -30463,6 +30561,7 @@ const _sfc_main$i = {
           return;
         diskLocations$f[index2].occupied = slot.occupied;
         diskLocations$f[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$f[index2].HDD);
+        diskLocations$f[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -30474,6 +30573,7 @@ const _sfc_main$i = {
           return;
         diskLocations$f[index2].occupied = slot.occupied;
         diskLocations$f[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$f[index2].HDD);
+        diskLocations$f[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -30548,6 +30648,7 @@ const _sfc_main$i = {
             return;
           diskLocations$f[index2].occupied = slot.occupied;
           diskLocations$f[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$f[index2].HDD);
+        diskLocations$f[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -30570,6 +30671,11 @@ const _sfc_main$i = {
         diskLocations$f.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$f.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -30840,6 +30946,7 @@ const _sfc_main$h = {
           return;
         diskLocations$e[index2].occupied = slot.occupied;
         diskLocations$e[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$e[index2].HDD);
+        diskLocations$e[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -30851,6 +30958,7 @@ const _sfc_main$h = {
           return;
         diskLocations$e[index2].occupied = slot.occupied;
         diskLocations$e[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$e[index2].HDD);
+        diskLocations$e[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -30911,6 +31019,7 @@ const _sfc_main$h = {
             return;
           diskLocations$e[index2].occupied = slot.occupied;
           diskLocations$e[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$e[index2].HDD);
+        diskLocations$e[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -30933,6 +31042,11 @@ const _sfc_main$h = {
         diskLocations$e.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$e.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -31203,6 +31317,7 @@ const _sfc_main$g = {
           return;
         diskLocations$d[index2].occupied = slot.occupied;
         diskLocations$d[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$d[index2].HDD);
+        diskLocations$d[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -31214,6 +31329,7 @@ const _sfc_main$g = {
           return;
         diskLocations$d[index2].occupied = slot.occupied;
         diskLocations$d[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$d[index2].HDD);
+        diskLocations$d[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -31274,6 +31390,7 @@ const _sfc_main$g = {
             return;
           diskLocations$d[index2].occupied = slot.occupied;
           diskLocations$d[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$d[index2].HDD);
+        diskLocations$d[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -31296,6 +31413,11 @@ const _sfc_main$g = {
         diskLocations$d.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$d.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -31446,6 +31568,7 @@ const _sfc_main$f = {
           return;
         diskLocations$c[index2].occupied = slot.occupied;
         diskLocations$c[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$c[index2].HDD);
+        diskLocations$c[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -31457,6 +31580,7 @@ const _sfc_main$f = {
           return;
         diskLocations$c[index2].occupied = slot.occupied;
         diskLocations$c[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$c[index2].HDD);
+        diskLocations$c[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -31517,6 +31641,7 @@ const _sfc_main$f = {
             return;
           diskLocations$c[index2].occupied = slot.occupied;
           diskLocations$c[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$c[index2].HDD);
+        diskLocations$c[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -31537,6 +31662,11 @@ const _sfc_main$f = {
         diskLocations$c.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$c.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -31691,6 +31821,7 @@ const _sfc_main$e = {
           return;
         diskLocations$b[index2].occupied = slot.occupied;
         diskLocations$b[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$b[index2].HDD);
+        diskLocations$b[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -31702,6 +31833,7 @@ const _sfc_main$e = {
           return;
         diskLocations$b[index2].occupied = slot.occupied;
         diskLocations$b[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$b[index2].HDD);
+        diskLocations$b[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -31761,6 +31893,7 @@ const _sfc_main$e = {
             return;
           diskLocations$b[index2].occupied = slot.occupied;
           diskLocations$b[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$b[index2].HDD);
+        diskLocations$b[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -31781,6 +31914,11 @@ const _sfc_main$e = {
         diskLocations$b.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$b.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -32051,6 +32189,7 @@ const _sfc_main$d = {
           return;
         diskLocations$a[index2].occupied = slot.occupied;
         diskLocations$a[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$a[index2].HDD);
+        diskLocations$a[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -32062,6 +32201,7 @@ const _sfc_main$d = {
           return;
         diskLocations$a[index2].occupied = slot.occupied;
         diskLocations$a[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$a[index2].HDD);
+        diskLocations$a[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -32122,6 +32262,7 @@ const _sfc_main$d = {
             return;
           diskLocations$a[index2].occupied = slot.occupied;
           diskLocations$a[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$a[index2].HDD);
+        diskLocations$a[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -32144,6 +32285,11 @@ const _sfc_main$d = {
         diskLocations$a.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$a.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -32294,6 +32440,7 @@ const _sfc_main$c = {
           return;
         diskLocations$9[index2].occupied = slot.occupied;
         diskLocations$9[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$9[index2].HDD);
+        diskLocations$9[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -32305,6 +32452,7 @@ const _sfc_main$c = {
           return;
         diskLocations$9[index2].occupied = slot.occupied;
         diskLocations$9[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$9[index2].HDD);
+        diskLocations$9[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -32365,6 +32513,7 @@ const _sfc_main$c = {
             return;
           diskLocations$9[index2].occupied = slot.occupied;
           diskLocations$9[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$9[index2].HDD);
+        diskLocations$9[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -32385,6 +32534,11 @@ const _sfc_main$c = {
         diskLocations$9.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$9.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -32539,6 +32693,7 @@ const _sfc_main$b = {
           return;
         diskLocations$8[index2].occupied = slot.occupied;
         diskLocations$8[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$8[index2].HDD);
+        diskLocations$8[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -32550,6 +32705,7 @@ const _sfc_main$b = {
           return;
         diskLocations$8[index2].occupied = slot.occupied;
         diskLocations$8[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$8[index2].HDD);
+        diskLocations$8[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -32609,6 +32765,7 @@ const _sfc_main$b = {
             return;
           diskLocations$8[index2].occupied = slot.occupied;
           diskLocations$8[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$8[index2].HDD);
+        diskLocations$8[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -32629,6 +32786,11 @@ const _sfc_main$b = {
         diskLocations$8.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$8.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -33171,6 +33333,7 @@ const _sfc_main$a = {
           return;
         diskLocations$7[index2].occupied = slot.occupied;
         diskLocations$7[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$7[index2].HDD);
+        diskLocations$7[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -33182,6 +33345,7 @@ const _sfc_main$a = {
           return;
         diskLocations$7[index2].occupied = slot.occupied;
         diskLocations$7[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$7[index2].HDD);
+        diskLocations$7[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -33256,6 +33420,7 @@ const _sfc_main$a = {
             return;
           diskLocations$7[index2].occupied = slot.occupied;
           diskLocations$7[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$7[index2].HDD);
+        diskLocations$7[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -33278,6 +33443,11 @@ const _sfc_main$a = {
         diskLocations$7.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$7.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -34060,6 +34230,7 @@ const _sfc_main$9 = {
           return;
         diskLocations$6[index2].occupied = slot.occupied;
         diskLocations$6[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$6[index2].HDD);
+        diskLocations$6[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -34071,6 +34242,7 @@ const _sfc_main$9 = {
           return;
         diskLocations$6[index2].occupied = slot.occupied;
         diskLocations$6[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$6[index2].HDD);
+        diskLocations$6[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -34145,6 +34317,7 @@ const _sfc_main$9 = {
             return;
           diskLocations$6[index2].occupied = slot.occupied;
           diskLocations$6[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$6[index2].HDD);
+        diskLocations$6[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -34167,6 +34340,11 @@ const _sfc_main$9 = {
         diskLocations$6.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$6.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -34809,6 +34987,7 @@ const _sfc_main$8 = {
           return;
         diskLocations$5[index2].occupied = slot.occupied;
         diskLocations$5[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$5[index2].HDD);
+        diskLocations$5[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -34820,6 +34999,7 @@ const _sfc_main$8 = {
           return;
         diskLocations$5[index2].occupied = slot.occupied;
         diskLocations$5[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$5[index2].HDD);
+        diskLocations$5[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied, modelName, modelFamily, diskType, slotHdd) {
@@ -34889,6 +35069,7 @@ const _sfc_main$8 = {
             return;
           diskLocations$5[index2].occupied = slot.occupied;
           diskLocations$5[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$5[index2].HDD);
+        diskLocations$5[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -34911,6 +35092,11 @@ const _sfc_main$8 = {
         diskLocations$5.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$5.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -35059,6 +35245,7 @@ const _sfc_main$7 = {
           return;
         diskLocations$4[index2].occupied = slot.occupied;
         diskLocations$4[index2].image = getDiskImage(slot.occupied);
+        diskLocations$4[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(lsdevJson, () => {
@@ -35070,6 +35257,7 @@ const _sfc_main$7 = {
           return;
         diskLocations$4[index2].occupied = slot.occupied;
         diskLocations$4[index2].image = getDiskImage(slot.occupied);
+        diskLocations$4[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     function getDiskImage(occupied) {
@@ -35099,6 +35287,7 @@ const _sfc_main$7 = {
             return;
           diskLocations$4[index2].occupied = slot.occupied;
           diskLocations$4[index2].image = getDiskImage(slot.occupied);
+        diskLocations$4[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -35117,6 +35306,11 @@ const _sfc_main$7 = {
         diskLocations$4.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$4.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -35238,6 +35432,7 @@ const _sfc_main$6 = {
           return;
         diskLocations$3[index2].occupied = slot.occupied;
         diskLocations$3[index2].image = getDiskImage(slot.occupied);
+        diskLocations$3[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: false, deep: true });
     watch(diskInfo, () => {
@@ -35247,6 +35442,7 @@ const _sfc_main$6 = {
           const index2 = diskLocations$3.findIndex((loc) => loc.BAY === slot["bay-id"]);
           diskLocations$3[index2].occupied = slot.occupied;
           diskLocations$3[index2].image = getDiskImage(slot.occupied);
+        diskLocations$3[index2].standby = slot["power-mode"] === "STANDBY";
         });
       }
     }, { immediate: true, deep: true });
@@ -35277,6 +35473,7 @@ const _sfc_main$6 = {
             return;
           diskLocations$3[index2].occupied = slot.occupied;
           diskLocations$3[index2].image = getDiskImage(slot.occupied);
+        diskLocations$3[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -35295,6 +35492,11 @@ const _sfc_main$6 = {
         diskLocations$3.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$3.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height, p5.animationSteps, p5.animationLoadingIndex);
             }
@@ -35442,6 +35644,7 @@ const _sfc_main$5 = {
           return;
         diskLocations$2[index2].occupied = slot.occupied;
         diskLocations$2[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$2[index2].HDD);
+        diskLocations$2[index2].standby = slot["power-mode"] === "STANDBY";
       });
       assets$2.loadingFlag = false;
     }, { immediate: false, deep: true });
@@ -35453,6 +35656,7 @@ const _sfc_main$5 = {
           return;
         diskLocations$2[index2].occupied = slot.occupied;
         diskLocations$2[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$2[index2].HDD);
+        diskLocations$2[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(enableZfsAnimations, () => {
@@ -35531,6 +35735,7 @@ const _sfc_main$5 = {
           const index2 = diskLocations$2.findIndex((loc) => loc.BAY === slot["bay-id"]);
           diskLocations$2[index2].occupied = slot.occupied;
           diskLocations$2[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$2[index2].HDD);
+        diskLocations$2[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -35550,6 +35755,11 @@ const _sfc_main$5 = {
         diskLocations$2.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$2.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height - 14);
             }
@@ -35705,6 +35915,7 @@ const _sfc_main$4 = {
           return;
         diskLocations$1[index2].occupied = slot.occupied;
         diskLocations$1[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$1[index2].HDD);
+        diskLocations$1[index2].standby = slot["power-mode"] === "STANDBY";
       });
       assets$1.loadingFlag = false;
     }, { immediate: false, deep: true });
@@ -35716,6 +35927,7 @@ const _sfc_main$4 = {
           return;
         diskLocations$1[index2].occupied = slot.occupied;
         diskLocations$1[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$1[index2].HDD);
+        diskLocations$1[index2].standby = slot["power-mode"] === "STANDBY";
       });
     }, { immediate: true, deep: true });
     watch(enableZfsAnimations, () => {
@@ -35794,6 +36006,7 @@ const _sfc_main$4 = {
           const index2 = diskLocations$1.findIndex((loc) => loc.BAY === slot["bay-id"]);
           diskLocations$1[index2].occupied = slot.occupied;
           diskLocations$1[index2].image = getDiskImage(slot.occupied, slot["model-name"], slot["model-family"], slot["disk_type"], diskLocations$1[index2].HDD);
+        diskLocations$1[index2].standby = slot["power-mode"] === "STANDBY";
         });
       };
       p5.setup = (_) => {
@@ -35813,6 +36026,11 @@ const _sfc_main$4 = {
         diskLocations$1.forEach((loc) => {
           if (loc.occupied && loc.image) {
             p5.image(loc.image, loc.x, loc.y);
+            if (loc.standby) {
+              p5.noStroke();
+              p5.fill(255, 165, 0, 80);
+              p5.rect(loc.x, loc.y, loc.image.width, loc.image.height - 14);
+            }
             if (assets$1.loadingFlag) {
               p5.animateLoading(loc.x, loc.y, loc.image.width, loc.image.height - 14);
             }

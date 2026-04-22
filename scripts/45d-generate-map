@@ -16,6 +16,11 @@ $proc_partitions_path = getenv('DRIVEMAP_PROC_PARTITIONS') ?: '/proc/partitions'
 $sys_block_root = getenv('DRIVEMAP_SYS_BLOCK') ?: '/sys/block';
 $smartctl_dir = getenv('DRIVEMAP_SMARTCTL_DIR') ?: '';
 $disable_smart = getenv('DRIVEMAP_DISABLE_SMART') === '1';
+$smartctl_nocheck = getenv('DRIVEMAP_SMARTCTL_NOCHECK');
+if ($smartctl_nocheck === false || $smartctl_nocheck === '') {
+  // Default to checking SMART without spinning up standby disks.
+  $smartctl_nocheck = 'standby';
+}
 $default_server_info_generator = '/usr/local/emhttp/plugins/45d-drivemap/scripts/45d-generate-server-info';
 if (!is_file($default_server_info_generator)) {
   $default_server_info_generator = __DIR__ . '/45d-generate-server-info';
@@ -505,7 +510,7 @@ function decode_json_loose($text)
   return null;
 }
 
-function smart_data($dev_path, $smartctl_dir)
+function smart_data($dev_path, $smartctl_dir, $smartctl_nocheck)
 {
   // Prefer fixture JSON when provided (tests), otherwise invoke smartctl.
   if ($dev_path === '') {
@@ -521,16 +526,30 @@ function smart_data($dev_path, $smartctl_dir)
   }
 
   if ($output === '') {
-    $command = 'smartctl -a ' . escapeshellarg($dev_path) . ' --json 2>/dev/null';
-    $output = (string)@shell_exec($command);
+    $nopt = '';
+    if (is_string($smartctl_nocheck) && $smartctl_nocheck !== '') {
+      $nopt = '-n ' . escapeshellarg($smartctl_nocheck) . ' ';
+    }
+    $command = 'smartctl ' . $nopt . '-a ' . escapeshellarg($dev_path) . ' --json 2>&1';
+    $lines = [];
+    $code = 0;
+    @exec($command, $lines, $code);
+    $output = implode("\n", $lines);
   }
 
   if ($output === '') {
     return null;
   }
 
+  $standby_detected = (bool)preg_match('/device\s+is\s+in\s+(standby|sleep)\s+mode/i', $output);
+
   $decoded = decode_json_loose($output);
   if (!is_array($decoded)) {
+    if ($standby_detected) {
+      return [
+        'power-mode' => 'STANDBY',
+      ];
+    }
     return null;
   }
 
@@ -547,8 +566,13 @@ function smart_data($dev_path, $smartctl_dir)
     'current-pending-sector' => '',
     'offline-uncorrectable' => '',
     'power-on-time' => '',
+    'power-mode' => '',
     'health' => '',
   ];
+
+  if (isset($decoded['power_mode']['current']) && is_string($decoded['power_mode']['current'])) {
+    $result['power-mode'] = strtoupper(trim($decoded['power_mode']['current']));
+  }
 
   if (isset($decoded['ata_smart_attributes']['table']) && is_array($decoded['ata_smart_attributes']['table'])) {
     foreach ($decoded['ata_smart_attributes']['table'] as $attribute) {
@@ -580,6 +604,12 @@ function smart_data($dev_path, $smartctl_dir)
   }
   if (isset($decoded['smart_status']['passed'])) {
     $result['health'] = $decoded['smart_status']['passed'] ? 'OK' : 'POOR';
+  }
+
+  if ($standby_detected) {
+    $result['power-mode'] = 'STANDBY';
+  } elseif ($result['power-mode'] === '') {
+    $result['power-mode'] = 'ACTIVE';
   }
 
   return $result;
@@ -719,6 +749,7 @@ foreach ($aliases as $alias) {
     'current-pending-sector' => '',
     'offline-uncorrectable' => '',
     'power-on-time' => '',
+    'power-mode' => '',
     'health' => '',
     'disk_type' => '',
     'storage-role' => '',
@@ -760,7 +791,7 @@ foreach ($aliases as $alias) {
       $slot = array_merge($slot, storage_details($device, $disks_map));
 
       if (!$disable_smart) {
-        apply_smart_data($slot, smart_data($slot['dev'], $smartctl_dir));
+        apply_smart_data($slot, smart_data($slot['dev'], $smartctl_dir, $smartctl_nocheck));
       }
     }
   }

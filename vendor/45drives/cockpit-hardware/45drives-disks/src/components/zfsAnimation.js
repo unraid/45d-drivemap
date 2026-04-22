@@ -31,6 +31,14 @@ export default function zfsAnimation(p5) {
       start: p5.color(239, 68, 68, 192),
       end: p5.color(244, 63, 94, 0),
     },
+    storage_active: {
+      start: p5.color(59, 130, 246, 160),
+      end: p5.color(96, 165, 250, 0),
+    },
+    storage_group: {
+      start: p5.color(14, 165, 233, 120),
+      end: p5.color(56, 189, 248, 200),
+    },
   };
 
   p5.animateZpools = (x, y, w, h, steps, index, from, to, zfsAnimationDir) => {
@@ -69,15 +77,58 @@ export default function zfsAnimation(p5) {
     p5.pop();
   };
 
-  p5.showZfs = (cd, zfsInfo, diskLocations, y_offset = 0) => {
+  p5.showStorageActivity = (cd, animationInfo, diskLocations, y_offset = 0) => {
+    const currentDisk = animationInfo?.animation_disks?.[cd];
+    const group = animationInfo?.animation_groups?.[currentDisk?.group] || [];
+    if (!currentDisk || group.length === 0) {
+      return false;
+    }
+
+    p5.updateZfsAnimationState();
+    group.forEach((dsk) => {
+      const dsk_idx = diskLocations.findIndex((loc) => loc.BAY === dsk.name);
+      if (dsk_idx < 0 || !diskLocations[dsk_idx]?.image) return;
+
+      const loc = diskLocations[dsk_idx];
+      if (dsk.name === cd) {
+        p5.animateVdevs(
+          loc.x,
+          loc.y,
+          loc.image.width,
+          loc.image.height + y_offset,
+          p5.zfsAnimationSteps,
+          p5.zfsAnimationIndex,
+          p5.zfsAnimationColors.storage_active.start,
+          p5.zfsAnimationColors.storage_active.end
+        );
+        return;
+      }
+
+      p5.animateZpools(
+        loc.x,
+        loc.y,
+        loc.image.width,
+        loc.image.height + y_offset,
+        p5.zfsAnimationSteps,
+        p5.zfsAnimationIndex,
+        p5.zfsAnimationColors.storage_group.start,
+        p5.zfsAnimationColors.storage_group.end,
+        p5.zfsAnimationDir
+      );
+    });
+
+    return true;
+  };
+
+  p5.showAnimations = (cd, zfsInfo, diskLocations, y_offset = 0) => {
     if (zfsInfo.zfs_installed) {
       //zfs is installed
-      if (zfsInfo.zfs_disks && zfsInfo.zfs_disks[cd]) {
+      if (Array.isArray(zfsInfo.zpools) && zfsInfo.zfs_disks && zfsInfo.zfs_disks[cd]) {
         //current disk is member of a zpool
         let pool_idx = zfsInfo.zpools.findIndex(
           (pool) => pool.name === zfsInfo.zfs_disks[cd].zpool_name
         );
-        if (typeof pool_idx != "undefined") {
+        if (pool_idx >= 0 && zfsInfo.zpools[pool_idx]) {
           //we have the index of the zpool to which the current disk belongs
           p5.updateZfsAnimationState();
           //animate each disk within the same vdev as the current
@@ -159,8 +210,12 @@ export default function zfsAnimation(p5) {
               }
             });
           });
+          return true;
         }
       }
     }
+    return p5.showStorageActivity(cd, zfsInfo, diskLocations, y_offset);
   };
+
+  p5.showZfs = p5.showAnimations;
 }

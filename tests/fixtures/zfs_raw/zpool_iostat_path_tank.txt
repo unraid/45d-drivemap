@@ -1,0 +1,7 @@
+                                         capacity     operations     bandwidth
+pool                                   alloc   free   read  write   read  write
+-------------------------------------  -----  -----  -----  -----  -----  -----
+tank                                   10G    90G    1      2      10M    20M
+  mirror-0                             10G    90G    1      2      10M    20M
+    /dev/disk/by-path/pci-0000:01:00.0-sas-phy0-lun-0 5G     45G    1      2      5M     10M
+    /dev/disk/by-path/pci-0000:01:00.0-sas-phy1-lun-0 5G     45G    1      2      5M     10M

@@ -70,6 +70,46 @@ export default {
 
     let watchInitiated = false;
 
+    const animationGroupKey = (slot) => {
+      if (!slot || !slot.occupied) return "";
+      const role = slot["storage-role"] || "";
+      const label = slot["storage-label"] || "";
+      const fsType = slot["fs-type"] || "";
+
+      if (role === "array" || role === "parity") return "unraid-array";
+      if (role === "pool" && label) return `pool:${label}`;
+      if (role === "boot" && label) return `boot:${label}`;
+      if (fsType) return `fs:${fsType}`;
+      if (role) return `role:${role}`;
+      return "";
+    };
+
+    const updateAnimationInfo = (rows = []) => {
+      const animationDisks = {};
+      const animationGroups = {};
+
+      rows.flat().forEach((slot) => {
+        const bayId = slot?.["bay-id"];
+        const groupKey = animationGroupKey(slot);
+        if (!bayId || !groupKey) return;
+
+        const disk = {
+          name: bayId,
+          group: groupKey,
+          role: slot["storage-role"] || "",
+          label: slot["storage-label"] || "",
+          fsType: slot["fs-type"] || "",
+        };
+
+        animationDisks[bayId] = disk;
+        animationGroups[groupKey] ??= [];
+        animationGroups[groupKey].push(disk);
+      });
+
+      zfsInfo.animation_disks = animationDisks;
+      zfsInfo.animation_groups = animationGroups;
+    };
+
     const adminFlag = ref(false);
     const adminCheck = ref(false);
 
@@ -397,6 +437,7 @@ export default {
         ).promise();
         let result = JSON.parse(state.stdout);
         Object.assign(diskInfo, result);
+        updateAnimationInfo(result.rows || []);
         preloadChecks.lsdev.content = result;
         preloadChecks.lsdev.finished = true;
         preloadChecks.lsdev.failed = false;

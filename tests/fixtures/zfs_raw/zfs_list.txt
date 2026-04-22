@@ -1,0 +1,3 @@
+tank	10G	90G	10G	/mnt/tank
+tank/data	1G	9G	1G	/mnt/tank/data
+tank@snap	1G	9G	1G	-

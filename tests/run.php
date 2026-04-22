@@ -543,6 +543,35 @@ assert_equal($zfs_info['zpools'][0]['name'], 'tank', 'zfs_info pool name');
 assert_true(isset($zfs_info['zfs_disks']), 'zfs_info includes disk map');
 assert_true(isset($zfs_info['zfs_disks']['1-1']), 'zfs_info includes disk 1-1');
 
+putenv('DRIVEMAP_ZFS_FIXTURE_DIR=' . $fixtures . '/zfs_raw');
+[$zfs_raw_code, $zfs_raw_body] = run_api_action($root, 'zfs_info');
+assert_equal($zfs_raw_code, 0, 'zfs_info raw-device endpoint exits successfully');
+$zfs_raw_info = json_decode($zfs_raw_body, true);
+assert_true(is_array($zfs_raw_info), 'zfs_info raw-device endpoint returns JSON');
+assert_true(isset($zfs_raw_info['zfs_disks']['1-1']), 'raw-device zfs_info maps sda1 to bay 1-1');
+assert_true(isset($zfs_raw_info['zfs_disks']['1-2']), 'raw-device zfs_info maps sdb1 to bay 1-2');
+assert_true(!isset($zfs_raw_info['zfs_disks']['sda1']), 'raw-device zfs_info does not expose raw sda1 key');
+assert_true(empty($zfs_raw_info['warnings']), 'raw-device zfs_info suppresses alias warning when drivemap can resolve devices');
+
+require_once $root . '/php/zfs_info.php';
+$lookup_refresh_path = $ctx['out_dir'] . '/zfs_lookup_refresh.json';
+file_put_contents($lookup_refresh_path, json_encode([
+  'rows' => [[
+    ['bay-id' => '9-1', 'dev' => '/dev/sdz', 'dev-by-path' => '/dev/disk/by-path/test-zfs-refresh'],
+  ]],
+]));
+putenv('DRIVEMAP_OUTPUT_FILE=' . $lookup_refresh_path);
+$first_lookup = zfs_drivemap_lookup();
+assert_equal($first_lookup['/dev/sdz'] ?? null, '9-1', 'zfs drivemap lookup reads initial map');
+file_put_contents($lookup_refresh_path, json_encode([
+  'rows' => [[
+    ['bay-id' => '9-2', 'dev' => '/dev/sdz', 'dev-by-path' => '/dev/disk/by-path/test-zfs-refresh'],
+  ]],
+]));
+$second_lookup = zfs_drivemap_lookup();
+assert_equal($second_lookup['/dev/sdz'] ?? null, '9-2', 'zfs drivemap lookup refreshes regenerated map');
+putenv('DRIVEMAP_OUTPUT_FILE');
+
 // Scenario 2: SMART-derived fields.
 putenv('DRIVEMAP_SMARTCTL_DIR=' . $fixtures . '/smart');
 [$smart_code] = run_php_script($map_script);
@@ -723,7 +752,8 @@ $hl15_alias_lines = alias_lines_from_fixture($ctx_hl15['alias_file']);
 assert_equal(count($hl15_alias_lines), 15, 'hl15 fallback generates fifteen aliases');
 $hl15_server = load_json_file($ctx_hl15['out_dir'] . '/server_info.json');
 assert_true(is_array($hl15_server), 'hl15 fallback server_info parses as JSON');
-assert_equal($hl15_server['Model'] ?? '', 'HomeLab-HL15', 'hl15 fallback model');
+assert_equal($hl15_server['Model'] ?? '', 'Unraid >< 45Homelab X-15', 'hl15 fallback model');
+assert_equal($hl15_server['Canvas Model'] ?? '', 'HomeLab-HL15', 'hl15 fallback canvas model');
 assert_equal($hl15_server['Alias Style'] ?? '', 'HOMELAB', 'hl15 fallback alias style');
 assert_equal($hl15_server['Chassis Size'] ?? '', 'HL15', 'hl15 fallback chassis');
 assert_equal($hl15_server['HBA'][0]['Model'] ?? '', 'HBA 9400-16i', 'hl15 fallback hba model');
@@ -732,6 +762,26 @@ $hl15_map = load_json_file($ctx_hl15['out_dir'] . '/drivemap.json');
 assert_true(is_array($hl15_map), 'hl15 fallback drivemap parses as JSON');
 assert_equal(count($hl15_map['rows'] ?? []), 1, 'hl15 fallback row count');
 assert_equal(count($hl15_map['rows'][0] ?? []), 15, 'hl15 fallback bay count');
+
+// Scenario 10: copied server_info gains a stable canvas model without changing the display model.
+$ctx_server_copy = create_context('server-info-copy-canvas-model');
+set_common_env($ctx_server_copy, $fixtures);
+$server_copy_input = $ctx_server_copy['tmp'] . '/source_server_info.json';
+file_put_contents($server_copy_input, json_encode([
+  'Model' => 'Unraid >< 45Homelab X-15',
+  'Alias Style' => 'HOMELAB',
+  'Chassis Size' => 'HL15',
+  'HBA' => [],
+], JSON_PRETTY_PRINT) . "\n");
+[$server_copy_code] = run_php_script($server_script, [
+  'DRIVEMAP_SERVER_INFO_INPUT' => $server_copy_input,
+  'DRIVEMAP_OUTPUT_DIR' => $ctx_server_copy['out_dir'],
+  'DRIVEMAP_VENDOR_SERVER_IDENTIFIER' => '/bin/false',
+]);
+assert_equal($server_copy_code, 0, 'server_info copy with canvas model exits successfully');
+$server_copy = load_json_file($ctx_server_copy['out_dir'] . '/server_info.json');
+assert_equal($server_copy['Model'] ?? '', 'Unraid >< 45Homelab X-15', 'server_info copy preserves display model');
+assert_equal($server_copy['Canvas Model'] ?? '', 'HomeLab-HL15', 'server_info copy derives canvas model');
 
 if ($failures > 0) {
   fwrite(STDERR, "\n$failures test(s) failed.\n");

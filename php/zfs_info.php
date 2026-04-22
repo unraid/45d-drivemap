@@ -25,6 +25,124 @@ function read_fixture($name)
   return null;
 }
 
+function zfs_load_json($path)
+{
+  if (!is_file($path)) {
+    return null;
+  }
+  $raw = @file_get_contents($path);
+  if ($raw === false) {
+    return null;
+  }
+  $decoded = json_decode($raw, true);
+  return is_array($decoded) ? $decoded : null;
+}
+
+function zfs_drivemap_lookup()
+{
+  $lookup = [];
+  $map_path = getenv('DRIVEMAP_OUTPUT_FILE');
+  if (!$map_path) {
+    $base_dir = getenv('DRIVEMAP_OUTPUT_DIR') ?: '/var/local/45d';
+    $map_path = rtrim($base_dir, '/') . '/drivemap.json';
+  }
+
+  $map = zfs_load_json($map_path);
+  if (!is_array($map) || !isset($map['rows']) || !is_array($map['rows'])) {
+    return $lookup;
+  }
+
+  foreach ($map['rows'] as $row) {
+    if (!is_array($row)) {
+      continue;
+    }
+    foreach ($row as $slot) {
+      if (!is_array($slot)) {
+        continue;
+      }
+      $bay_id = $slot['bay-id'] ?? '';
+      if (!is_string($bay_id) || $bay_id === '') {
+        continue;
+      }
+
+      foreach (['dev', 'dev-by-path'] as $field) {
+        $value = $slot[$field] ?? '';
+        if (!is_string($value) || $value === '') {
+          continue;
+        }
+        $lookup[$value] = $bay_id;
+        $lookup[basename($value)] = $bay_id;
+      }
+    }
+  }
+
+  return $lookup;
+}
+
+function zfs_strip_partition_suffix($name)
+{
+  if (!is_string($name) || $name === '') {
+    return '';
+  }
+
+  if (preg_match('/^(.*)-part[0-9]+$/', $name, $match)) {
+    return $match[1];
+  }
+  if (preg_match('/^(nvme[0-9]+n[0-9]+)p[0-9]+$/', $name, $match)) {
+    return $match[1];
+  }
+  if (preg_match('/^(sd[a-z]+)[0-9]+$/', $name, $match)) {
+    return $match[1];
+  }
+
+  return $name;
+}
+
+function canonical_zfs_disk_name($name, $lookup = [])
+{
+  if (!is_string($name) || $name === '') {
+    return $name;
+  }
+  if (preg_match('/^\d+-\d+$/', $name)) {
+    return $name;
+  }
+
+  $candidates = [];
+  $candidates[] = $name;
+  $candidates[] = basename($name);
+
+  foreach ($candidates as $candidate) {
+    $stripped = zfs_strip_partition_suffix($candidate);
+    if ($stripped !== $candidate) {
+      $candidates[] = $stripped;
+    }
+    if (strpos($candidate, '/dev/') === 0) {
+      $without_dev = substr($candidate, 5);
+      if ($without_dev !== '') {
+        $candidates[] = $without_dev;
+        $stripped = zfs_strip_partition_suffix($without_dev);
+        if ($stripped !== $without_dev) {
+          $candidates[] = $stripped;
+        }
+      }
+    } else {
+      $candidates[] = '/dev/' . $candidate;
+      $stripped = zfs_strip_partition_suffix($candidate);
+      if ($stripped !== $candidate) {
+        $candidates[] = '/dev/' . $stripped;
+      }
+    }
+  }
+
+  foreach (array_values(array_unique($candidates)) as $candidate) {
+    if (isset($lookup[$candidate])) {
+      return $lookup[$candidate];
+    }
+  }
+
+  return $name;
+}
+
 function command_output($command, $fixture_name = '')
 {
   // Fixtures take precedence over command execution when provided.
@@ -189,7 +307,7 @@ function zpool_iostat($pool_name)
   return [$pool_name => $combined];
 }
 
-function zpool_status_parse($status_obj, $key, $pool_name)
+function zpool_status_parse($status_obj, $key, $pool_name, $disk_lookup = [])
 {
   // Parse default and -P (absolute path) variants to keep display names while
   // still validating alias-backed path conformity.
@@ -271,7 +389,9 @@ function zpool_status_parse($status_obj, $key, $pool_name)
   foreach ($disks as &$disk) {
     if (preg_match($exception_match, $disk['name'], $match)) {
       $disk['name'] = $match[1];
+      continue;
     }
+    $disk['name'] = canonical_zfs_disk_name($disk['name'], $disk_lookup);
   }
   unset($disk);
 
@@ -279,7 +399,7 @@ function zpool_status_parse($status_obj, $key, $pool_name)
   return [$vdevs, $disks, $counts];
 }
 
-function verify_zfs_device_format($status_obj, $pool_name)
+function verify_zfs_device_format($status_obj, $pool_name, $disk_lookup = [])
 {
   // Frontend drive-to-bay mapping relies on "card-drive" aliases (e.g. 1-1).
   // Emit warnings when pool members do not follow that convention.
@@ -309,6 +429,13 @@ function verify_zfs_device_format($status_obj, $pool_name)
     $filtered = array_values(array_filter($filtered, function ($name) {
       return !preg_match('/^(\d+-\d+)(?:-part[0-9])/', $name);
     }));
+    $filtered = array_values(array_filter($filtered, function ($name) use ($disk_lookup) {
+      return !preg_match('/^\d+-\d+$/', canonical_zfs_disk_name($name, $disk_lookup));
+    }));
+
+    if (!$filtered) {
+      return $alert;
+    }
 
     $alert[] = "ZFS status displayed by this module for zpool '$pool_name' may be incomplete.\n\n";
     $alert[] = "This module can only display zfs status information for devices that are created using a device alias.\n\n";
@@ -325,7 +452,7 @@ function verify_zfs_device_format($status_obj, $pool_name)
   return $alert;
 }
 
-function zpool_iostat_parse($iostat_obj, $key, $pool_name)
+function zpool_iostat_parse($iostat_obj, $key, $pool_name, $disk_lookup = [])
 {
   if (!isset($iostat_obj[$key])) {
     return [[], [], []];
@@ -411,7 +538,9 @@ function zpool_iostat_parse($iostat_obj, $key, $pool_name)
   foreach ($disks as &$disk) {
     if (preg_match($exception_match, $disk['name'], $match)) {
       $disk['name'] = $match[1];
+      continue;
     }
+    $disk['name'] = canonical_zfs_disk_name($disk['name'], $disk_lookup);
   }
   unset($disk);
 
@@ -433,6 +562,7 @@ function generate_zfs_info()
   $json_zfs['zfs_installed'] = true;
   $json_zfs['zpools'] = get_zpool_list();
   $json_zfs['warnings'] = [];
+  $disk_lookup = zfs_drivemap_lookup();
 
   foreach ($json_zfs['zpools'] as &$pool) {
     $status_output = zpool_status($pool['name']);
@@ -440,7 +570,7 @@ function generate_zfs_info()
     $pool['state'] = $status_output['state'] ?? 'UNKNOWN';
     $pool['vdevs'] = [];
 
-    $alerts = verify_zfs_device_format($status_output, $pool['name']);
+    $alerts = verify_zfs_device_format($status_output, $pool['name'], $disk_lookup);
     if ($alerts) {
       $json_zfs['warnings'] = array_merge($json_zfs['warnings'], $alerts);
     }
@@ -449,8 +579,8 @@ function generate_zfs_info()
       if (!isset($iostat_output[$key])) {
         continue;
       }
-      [$status_vdevs, $status_disks, $status_counts] = zpool_status_parse($status_output, $key, $pool['name']);
-      [$iostat_vdevs, $iostat_disks, $iostat_counts] = zpool_iostat_parse($iostat_output, $key, $pool['name']);
+      [$status_vdevs, $status_disks, $status_counts] = zpool_status_parse($status_output, $key, $pool['name'], $disk_lookup);
+      [$iostat_vdevs, $iostat_disks, $iostat_counts] = zpool_iostat_parse($iostat_output, $key, $pool['name'], $disk_lookup);
 
       if (!$status_disks || !$iostat_disks || !$status_counts || !$iostat_counts) {
         continue;

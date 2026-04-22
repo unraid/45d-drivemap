@@ -80,6 +80,34 @@ function run_vdev_id_generator($script, $server_info_path, $output_path)
   return [$code, $output];
 }
 
+function ensure_zfs_vdev_config_link($alias_file)
+{
+  // ZFS's native /lib/udev/vdev_id helper reads /etc/zfs/vdev_id.conf, while
+  // this plugin historically generated /etc/vdev_id.conf. Mirror the config
+  // into the path ZFS expects so /dev/disk/by-vdev is created on Unraid hosts.
+  if ($alias_file !== '/etc/vdev_id.conf' || !is_file($alias_file)) {
+    return false;
+  }
+
+  $target_dir = '/etc/zfs';
+  $target = $target_dir . '/vdev_id.conf';
+  if (!is_dir($target_dir) && !@mkdir($target_dir, 0755, true) && !is_dir($target_dir)) {
+    return false;
+  }
+
+  if (is_link($target) && @readlink($target) === $alias_file) {
+    return true;
+  }
+  if (file_exists($target) && !is_link($target)) {
+    return false;
+  }
+  if (is_link($target)) {
+    @unlink($target);
+  }
+
+  return @symlink($alias_file, $target);
+}
+
 if (is_file($server_info_generator)) {
   // Keep server_info.json fresh so row-template selection can use real chassis
   // metadata when available.
@@ -102,6 +130,9 @@ if (!is_file($alias_file) && is_file($vdev_id_generator) && is_file($server_info
   } else {
     log_line($log_file, 'alias file generated: ' . $alias_file);
   }
+}
+if (ensure_zfs_vdev_config_link($alias_file)) {
+  log_line($log_file, 'zfs vdev config linked: /etc/zfs/vdev_id.conf');
 }
 
 function log_line($path, $message)

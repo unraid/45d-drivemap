@@ -85,6 +85,9 @@
     if (bay['temp-c']) {
       parts.push('Temp ' + bay['temp-c']);
     }
+    if (bay['power-mode']) {
+      parts.push('Power ' + bay['power-mode']);
+    }
     if (bay.health) {
       parts.push('Health ' + bay.health);
     }

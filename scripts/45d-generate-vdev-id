@@ -324,6 +324,32 @@ function sata_addresses()
   return [];
 }
 
+function x4_ata_ports_from_sysfs()
+{
+  // Empty X4 bays have no block devices or by-path links. ATA ports still
+  // exist in sysfs, so use their controller and port numbers for stable bays.
+  $dir = getenv('DRIVEMAP_DMAP_ATA_PORT_DIR') ?: '/sys/class/ata_port';
+  $groups = [];
+  foreach (glob($dir . '/ata*') ?: [] as $entry) {
+    $path = realpath($entry);
+    if ($path === false || !preg_match('#/(0000:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7])/ata(\d+)(?:/|$)#', $path, $matches)) {
+      continue;
+    }
+    $bus = strtolower($matches[1]);
+    $port = (int)$matches[2];
+    $groups[$bus][$port] = $port;
+  }
+
+  ksort($groups);
+  foreach ($groups as $bus => $ports) {
+    ksort($ports);
+    if (count($ports) >= 4) {
+      return [$bus, array_slice(array_values($ports), -4)];
+    }
+  }
+  return null;
+}
+
 function sata_port_paths($addr)
 {
   $mock = env_json_array('DRIVEMAP_DMAP_SATA_PATHS_JSON');
@@ -566,13 +592,20 @@ function alias_x4()
     }
   }
 
-  $addrs = sata_addresses();
-  if (count($addrs) < 1) {
-    fail('X4 requires four SATA DEVPATH observations or one SATA address (DRIVEMAP_DMAP_SATA_ADDRS)');
+  $observed_ports = x4_ata_ports_from_sysfs();
+  if ($observed_ports !== null) {
+    [$bus, $ports] = $observed_ports;
+  } else {
+    $addrs = sata_addresses();
+    if (count($addrs) < 1) {
+      fail('X4 requires four SATA DEVPATH observations, four ATA ports in sysfs, or one SATA address (DRIVEMAP_DMAP_SATA_ADDRS)');
+    }
+    $bus = $addrs[0];
+    $ports = [1, 2, 3, 4];
   }
   $lines = [];
-  for ($port = 1; $port <= 4; $port++) {
-    add_alias($lines, 1, $port, "/dev/disk/by-path/pci-{$addrs[0]}-ata-$port");
+  foreach ($ports as $index => $port) {
+    add_alias($lines, 1, $index + 1, "/dev/disk/by-path/pci-$bus-ata-$port");
   }
   return $lines;
 }

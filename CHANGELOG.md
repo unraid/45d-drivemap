@@ -4,6 +4,7 @@
 
 ### Added
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
+- Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed
 - Renamed the Unraid plugin to 45HomeLab and moved its settings under System Settings.

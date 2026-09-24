@@ -38,8 +38,9 @@ left alone. Applying a color changes the controller now; persistence across a
 power cycle has not been verified.
 The two daisy-chained ARCTIC fans on the tested X4 form a 24-LED serial chain.
 OpenRGB initially reported 80 LEDs for the header. After resizing it to 24,
-Direct mode addressed the top and bottom fans separately. Built-in effects can
-still appear mirrored; a custom center-out flow needs reliable frame updates.
+Direct-mode frames produced inconsistent partial changes, and repeated frames
+sometimes made no visible change. Built-in effects can appear mirrored. Separate
+fan settings and a center-out flow need reliable per-LED frame updates.
 
 ## Getting Started
 

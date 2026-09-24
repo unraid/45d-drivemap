@@ -7,12 +7,14 @@
 - Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
 - Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.
 - Added separate top and bottom fan colors, Outer Loop and Synchronized Rainbow effects, and a hub LED preview for the X4's 24-LED chain.
+- Added a unified lighting editor with previews for all modes, per-LED color popovers, custom palette saving, and live tuning controls for streamed effects.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed
 - Renamed the Unraid plugin to 45HomeLab and moved its settings under System Settings.
 - Preserved drive-map overrides from existing 45d-drivemap installations during installation.
 - Tuned the Orange preset to look less yellow on the X4 fans.
+- Paced animated fan streams at 15 frames per second and blended adjacent frames for smoother motion.
 
 ### Fixed
 - Target the X4 controller without OpenRGB's zone flag, which accepts commands but leaves the fan lights unchanged on this board.

@@ -122,14 +122,68 @@ function homelab_rgb_set_separate($top, $bottom)
   return homelab_stream_start(['top' => $top_color, 'bottom' => $bottom_color]);
 }
 
-function homelab_rgb_set_pinwheel()
+function homelab_rgb_set_stream_effect($effect, $input = [])
 {
-  return homelab_stream_start(['effect' => 'pinwheel-rainbow']);
+  if (!in_array($effect, ['pinwheel-rainbow', 'synchronized-rainbow'], true)) {
+    return ['ok' => false, 'error' => 'Choose a listed lighting option.'];
+  }
+  try {
+    $tuning = homelab_stream_tuning($input);
+  } catch (InvalidArgumentException $error) {
+    return ['ok' => false, 'error' => $error->getMessage()];
+  }
+  return homelab_stream_start(array_merge(['effect' => $effect], $tuning));
 }
 
-function homelab_rgb_set_synchronized_rainbow()
+function homelab_rgb_set_pinwheel($input = [])
 {
-  return homelab_stream_start(['effect' => 'synchronized-rainbow']);
+  return homelab_rgb_set_stream_effect('pinwheel-rainbow', $input);
+}
+
+function homelab_rgb_set_synchronized_rainbow($input = [])
+{
+  return homelab_rgb_set_stream_effect('synchronized-rainbow', $input);
+}
+
+function homelab_rgb_custom_palette_path()
+{
+  return getenv('HOMELAB_RGB_CUSTOM_PATH') ?: '/boot/config/plugins/45homelab/rgb-custom.json';
+}
+
+function homelab_rgb_custom_palette()
+{
+  $colors = json_decode((string) @file_get_contents(homelab_rgb_custom_palette_path()), true);
+  try {
+    return homelab_stream_validate_led_colors($colors);
+  } catch (InvalidArgumentException $ignored) {
+    return array_fill(0, 24, '000000');
+  }
+}
+
+function homelab_rgb_set_custom($json, $input = [])
+{
+  if (!is_string($json) || strlen($json) > 512) {
+    return ['ok' => false, 'error' => 'Choose valid LED colors.'];
+  }
+  try {
+    $colors = homelab_stream_validate_led_colors(json_decode($json, true));
+    $tuning = homelab_stream_tuning($input);
+  } catch (InvalidArgumentException $error) {
+    return ['ok' => false, 'error' => $error->getMessage()];
+  }
+  $result = homelab_stream_start(array_merge(['effect' => 'custom-leds', 'leds' => $colors], $tuning));
+  if (!$result['ok']) {
+    return $result;
+  }
+  $path = homelab_rgb_custom_palette_path();
+  $dir = dirname($path);
+  if ((!is_dir($dir) && !mkdir($dir, 0700, true)) ||
+      file_put_contents($path . '.tmp', json_encode($colors)) === false ||
+      !rename($path . '.tmp', $path)) {
+    @unlink($path . '.tmp');
+    return ['ok' => false, 'error' => 'Fan colors applied, but could not save the custom palette.'];
+  }
+  return $result;
 }
 
 function homelab_rgb_stream_selection()

@@ -22,11 +22,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $result = homelab_rgb_set_separate($top, $bottom);
     $label = 'Separate fan colors';
   } elseif ($action === 'pinwheel-rainbow') {
-    $result = homelab_rgb_set_pinwheel();
+    $result = homelab_rgb_set_pinwheel($_POST);
     $label = 'Outer Loop';
   } elseif ($action === 'synchronized-rainbow') {
-    $result = homelab_rgb_set_synchronized_rainbow();
+    $result = homelab_rgb_set_synchronized_rainbow($_POST);
     $label = 'Synchronized Rainbow';
+  } elseif ($action === 'custom-leds') {
+    $result = homelab_rgb_set_custom($_POST['led_colors'] ?? null, $_POST);
+    $label = 'Custom LED colors';
   } elseif ($action === 'global') {
     $preset = $_POST['color'] ?? '';
     $result = homelab_rgb_set($preset);
@@ -42,75 +45,173 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 }
 $streaming = homelab_stream_pid() !== null;
 $selection = homelab_rgb_stream_selection();
-$stream_config = $streaming ? json_decode((string) @file_get_contents(homelab_stream_paths()['config']), true) : null;
-$preview_mode = ($stream_config['effect'] ?? null) === 'pinwheel-rainbow' ? 'pinwheel-rainbow' : 'synchronized-rainbow';
+$stream_config = json_decode((string) @file_get_contents(homelab_stream_paths()['config']), true);
+$preview_mode = $streaming && in_array($stream_config['effect'] ?? null,
+  ['pinwheel-rainbow', 'synchronized-rainbow', 'custom-leds'], true)
+  ? $stream_config['effect'] : ($streaming ? 'separate' : 'global');
+$custom_palette = homelab_rgb_custom_palette();
+try {
+  $tuning = homelab_stream_tuning(is_array($stream_config) ? $stream_config : []);
+} catch (InvalidArgumentException $ignored) {
+  $tuning = HOMELAB_STREAM_TUNING_DEFAULTS;
+}
 $detected = $streaming ? ['ok' => true, 'error' => null] : homelab_rgb_detect();
 $ready = $detected['ok'];
 if (!$ready && $error === null) {
   $error = $detected['error'];
 }
 ?>
-<div style="max-width: 48rem;">
+<div class="homelab-lighting-page">
   <h2>Fan lighting</h2>
-  <p>Set a solid color or animated effect for the X4 fans connected to the ASRock addressable header.</p>
-  <p>The two daisy-chained fans each have 12 LEDs. Separate colors and streamed effects use the X4 controller.</p>
+  <p>Choose a lighting mode, preview both fan hubs, then apply it to the X4. Each daisy-chained fan has 12 LEDs.</p>
   <?php if ($message): ?>
     <p role="status"><?=htmlspecialchars($message, ENT_QUOTES, 'UTF-8')?></p>
   <?php endif; ?>
   <?php if ($error): ?>
     <p role="alert"><?=htmlspecialchars($error, ENT_QUOTES, 'UTF-8')?></p>
   <?php endif; ?>
-  <form method="post">
+  <form method="post" id="homelab-rgb-preview" data-led-colors="<?=htmlspecialchars(json_encode($custom_palette), ENT_QUOTES, 'UTF-8')?>" data-preset-colors="<?=htmlspecialchars(json_encode(array_map(fn($preset) => $preset['color'] ?: '000000', HOMELAB_RGB_PRESETS)), ENT_QUOTES, 'UTF-8')?>">
     <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
-    <input type="hidden" name="lighting_action" value="global">
-    <label for="homelab-fan-color">Lighting</label>
-    <select id="homelab-fan-color" name="color" <?=$ready ? '' : 'disabled'?>>
-      <option value="" selected disabled>Choose lighting</option>
-      <optgroup label="Solid colors">
-        <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
-          <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>"><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
-        <?php endforeach; ?>
-      </optgroup>
-      <optgroup label="Animated effects">
-        <?php foreach (HOMELAB_RGB_EFFECTS as $value => $effect): ?>
-          <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>"><?=htmlspecialchars($effect['label'], ENT_QUOTES, 'UTF-8')?></option>
-        <?php endforeach; ?>
-      </optgroup>
-    </select>
-    <input type="submit" value="Apply lighting" <?=$ready ? '' : 'disabled'?>>
-  </form>
-  <h3>Separate fan colors</h3>
-  <form method="post">
-    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
-    <input type="hidden" name="lighting_action" value="separate">
-    <label for="homelab-top-color">Top fan</label>
-    <select id="homelab-top-color" name="top_color" <?=$ready ? '' : 'disabled'?>>
-      <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
-        <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === $selection['top'] ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
-      <?php endforeach; ?>
-    </select>
-    <label for="homelab-bottom-color">Bottom fan</label>
-    <select id="homelab-bottom-color" name="bottom_color" <?=$ready ? '' : 'disabled'?>>
-      <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
-        <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === $selection['bottom'] ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
-      <?php endforeach; ?>
-    </select>
-    <input type="submit" value="Apply separate colors" <?=$ready ? '' : 'disabled'?>>
-  </form>
-  <h3>Animated preview</h3>
-  <p>The preview shows the LED positions on both hubs. Its timing is independent of the fans, and fan blades may diffuse light differently.</p>
-  <form method="post" id="homelab-rgb-preview">
-    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
-    <label for="homelab-preview-mode">Pattern</label>
-    <select id="homelab-preview-mode" name="lighting_action" <?=$ready ? '' : 'disabled'?>>
-      <option value="pinwheel-rainbow" <?=$preview_mode === 'pinwheel-rainbow' ? 'selected' : ''?>>Outer Loop</option>
-      <option value="synchronized-rainbow" <?=$preview_mode === 'synchronized-rainbow' ? 'selected' : ''?>>Synchronized Rainbow</option>
-    </select>
-    <input type="submit" value="Apply previewed pattern" <?=$ready ? '' : 'disabled'?>>
-    <button type="button" data-pause aria-pressed="false">Pause preview</button>
-    <label><input type="checkbox" data-numbers> LED numbers</label>
-    <canvas width="420" height="600" role="img" aria-label="Preview of top and bottom X4 fans with 12 hub LEDs each" style="display:block;width:min(100%,420px);height:auto;margin:1rem auto;"></canvas>
+    <input type="hidden" name="led_colors" value="<?=htmlspecialchars(json_encode($custom_palette), ENT_QUOTES, 'UTF-8')?>">
+    <div class="homelab-mode-row">
+      <label for="homelab-preview-mode">Lighting mode</label>
+      <select id="homelab-preview-mode" name="lighting_action">
+        <option value="global" <?=$preview_mode === 'global' ? 'selected' : ''?>>Whole header</option>
+        <option value="separate" <?=$preview_mode === 'separate' ? 'selected' : ''?>>Separate fan colors</option>
+        <option value="pinwheel-rainbow" <?=$preview_mode === 'pinwheel-rainbow' ? 'selected' : ''?>>Outer Loop</option>
+        <option value="synchronized-rainbow" <?=$preview_mode === 'synchronized-rainbow' ? 'selected' : ''?>>Synchronized Rainbow</option>
+        <option value="custom-leds" <?=$preview_mode === 'custom-leds' ? 'selected' : ''?>>Custom LEDs</option>
+      </select>
+    </div>
+    <div class="homelab-editor-grid">
+    <div class="homelab-preview-column">
+      <div class="homelab-preview-toolbar"><strong>Preview</strong><button type="button" data-pause aria-pressed="false">Pause preview</button><label><input type="checkbox" data-numbers> LED numbers</label></div>
+    <div class="homelab-preview-stage" data-stage>
+      <canvas width="420" height="600" role="img" aria-label="Preview of top and bottom X4 fans with 12 hub LEDs each. Select a lit position to edit its color." tabindex="0"></canvas>
+      <div class="homelab-led-popover" data-led-popover role="dialog" aria-label="Edit LED color" hidden>
+        <div class="homelab-popover-head"><strong data-led-label>Top LED 1</strong><button type="button" data-close-led aria-label="Close color editor">&times;</button></div>
+        <label for="homelab-paint-color">Color <input id="homelab-paint-color" type="color" value="#FF4500" data-paint-color></label>
+        <div class="homelab-popover-actions"><button type="button" data-apply-led>Apply color</button><button type="button" data-off-led>Turn off</button></div>
+      </div>
+    </div>
     <p data-description aria-live="polite"></p>
+    </div>
+    <div class="homelab-controls-column">
+      <div class="homelab-mode-controls" data-global-controls>
+        <label for="homelab-fan-color">Color or effect</label>
+        <select id="homelab-fan-color" name="color">
+          <optgroup label="Solid colors">
+            <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
+              <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === 'white' ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
+            <?php endforeach; ?>
+          </optgroup>
+          <optgroup label="Animated effects">
+            <?php foreach (HOMELAB_RGB_EFFECTS as $value => $effect): ?>
+              <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>"><?=htmlspecialchars($effect['label'], ENT_QUOTES, 'UTF-8')?></option>
+            <?php endforeach; ?>
+          </optgroup>
+        </select>
+      </div>
+      <div class="homelab-mode-controls" data-separate-controls>
+        <label for="homelab-top-color">Top fan</label>
+        <select id="homelab-top-color" name="top_color">
+          <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
+            <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === $selection['top'] ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
+          <?php endforeach; ?>
+        </select>
+        <label for="homelab-bottom-color">Bottom fan</label>
+        <select id="homelab-bottom-color" name="bottom_color">
+          <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
+            <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === $selection['bottom'] ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+    <div class="homelab-custom-editor" data-custom-editor <?=$preview_mode === 'custom-leds' ? '' : 'hidden'?>>
+      <label for="homelab-led-index">Choose LED
+        <select id="homelab-led-index" data-led-index>
+          <?php for ($led = 1; $led <= 24; $led++): ?>
+            <option value="<?=$led - 1?>"><?=$led <= 12 ? 'Top' : 'Bottom'?> <?=$led <= 12 ? $led : $led - 12?> (LED <?=$led?>)</option>
+          <?php endfor; ?>
+        </select>
+      </label>
+      <button type="button" data-open-led>Edit selected LED</button>
+      <span class="homelab-custom-divider" aria-hidden="true"></span>
+      <label for="homelab-fill-color">Fill color <input id="homelab-fill-color" type="color" value="#FF4500" data-fill-color></label>
+      <button type="button" data-fill-top>Fill top</button>
+      <button type="button" data-fill-bottom>Fill bottom</button>
+      <button type="button" data-fill-all>Fill all</button>
+      <button type="button" data-split>Split orange / blue</button>
+      <button type="button" data-clear>Clear</button>
+    </div>
+    <div class="homelab-tuning">
+      <label for="homelab-period" data-animated-only>Rotation time: <output data-value-for="period_seconds"><?=$tuning['period_seconds']?> s</output>
+        <input id="homelab-period" type="range" name="period_seconds" min="2" max="20" step="1" value="<?=$tuning['period_seconds']?>">
+      </label>
+      <label for="homelab-direction" data-animated-only>Direction
+        <select id="homelab-direction" name="direction">
+          <option value="clockwise" <?=$tuning['direction'] === 'clockwise' ? 'selected' : ''?>>Clockwise</option>
+          <option value="counterclockwise" <?=$tuning['direction'] === 'counterclockwise' ? 'selected' : ''?>>Counterclockwise</option>
+        </select>
+      </label>
+      <label for="homelab-hue" data-animated-only>Hue shift: <output data-value-for="hue_degrees"><?=$tuning['hue_degrees']?> deg</output>
+        <input id="homelab-hue" type="range" name="hue_degrees" min="0" max="359" step="1" value="<?=$tuning['hue_degrees']?>">
+      </label>
+      <label for="homelab-brightness" data-stream-only>Brightness: <output data-value-for="brightness_pct"><?=$tuning['brightness_pct']?>%</output>
+        <input id="homelab-brightness" type="range" name="brightness_pct" min="10" max="100" step="5" value="<?=$tuning['brightness_pct']?>">
+      </label>
+      <label for="homelab-alignment" data-animated-only>Bottom fan alignment: <output data-value-for="bottom_phase_steps"><?=$tuning['bottom_phase_steps']?> LEDs</output>
+        <input id="homelab-alignment" type="range" name="bottom_phase_steps" min="-6" max="6" step="1" value="<?=$tuning['bottom_phase_steps']?>">
+      </label>
+      <label for="homelab-cycles" data-animated-only>Rainbow repeats
+        <select id="homelab-cycles" name="rainbow_cycles">
+          <?php foreach ([1, 2, 3] as $cycles): ?>
+            <option value="<?=$cycles?>" <?=$tuning['rainbow_cycles'] === $cycles ? 'selected' : ''?>><?=$cycles?></option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+      <label for="homelab-fade" data-stream-only>Fade: <output data-value-for="fade_pct"><?=$tuning['fade_pct']?>%</output>
+        <input id="homelab-fade" type="range" name="fade_pct" min="0" max="80" step="5" value="<?=$tuning['fade_pct']?>">
+      </label>
+    </div>
+    </div>
+    </div>
+    <div class="homelab-preview-toolbar">
+      <button type="button" data-reset>Defaults</button>
+      <input type="submit" value="Apply lighting" <?=$ready ? '' : 'disabled'?>>
+    </div>
   </form>
 </div>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=1"></script>
+<style>
+  .homelab-lighting-page { max-width:72rem; }
+  #homelab-rgb-preview { padding:1rem; border:1px solid #b8c1c8; border-radius:8px; background:rgba(140,150,160,.06); }
+  #homelab-rgb-preview .homelab-mode-row { display:flex; align-items:center; gap:1rem; padding-bottom:1rem; border-bottom:1px solid #b8c1c8; }
+  #homelab-rgb-preview .homelab-mode-row label { font-weight:600; }
+  #homelab-rgb-preview .homelab-mode-row select { min-width:15rem; }
+  #homelab-rgb-preview .homelab-editor-grid { display:grid; grid-template-columns:minmax(0,420px) minmax(18rem,1fr); gap:1.5rem; padding:1rem 0; }
+  #homelab-rgb-preview .homelab-controls-column { min-width:0; }
+  #homelab-rgb-preview .homelab-mode-controls { margin-bottom:1rem; }
+  #homelab-rgb-preview .homelab-mode-controls label { display:block; margin:.75rem 0 .25rem; font-weight:600; }
+  #homelab-rgb-preview .homelab-mode-controls select { width:100%; }
+  #homelab-rgb-preview .homelab-preview-toolbar { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin:.25rem 0 1rem; }
+  #homelab-rgb-preview .homelab-preview-toolbar > label:first-child { font-weight:600; }
+  #homelab-rgb-preview .homelab-preview-stage { position:relative; width:min(100%,420px); margin:0 auto; }
+  #homelab-rgb-preview canvas { display:block; width:100%; height:auto; cursor:pointer; }
+  #homelab-rgb-preview canvas:focus-visible { outline:2px solid #e28935; outline-offset:2px; }
+  #homelab-rgb-preview .homelab-led-popover { position:absolute; z-index:5; width:200px; padding:.75rem; border:1px solid #9aa8b3; border-radius:8px; background:var(--background-color,#fff); color:inherit; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+  #homelab-rgb-preview .homelab-popover-head, #homelab-rgb-preview .homelab-popover-actions { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+  #homelab-rgb-preview .homelab-popover-head { margin-bottom:.75rem; }
+  #homelab-rgb-preview .homelab-popover-head button { border:0; background:transparent; color:inherit; padding:0 .25rem; font-size:1.4rem; cursor:pointer; }
+  #homelab-rgb-preview .homelab-led-popover label { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+  #homelab-rgb-preview .homelab-popover-actions { justify-content:flex-start; margin-top:.75rem; }
+  #homelab-rgb-preview .homelab-custom-divider { width:1px; height:1.5rem; background:#aab4bc; }
+  #homelab-rgb-preview .homelab-tuning { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin:1rem 0; }
+  #homelab-rgb-preview .homelab-tuning label { display:block; }
+  #homelab-rgb-preview .homelab-tuning input[type=range] { display:block; width:100%; }
+  #homelab-rgb-preview .homelab-tuning select { display:block; width:100%; }
+  #homelab-rgb-preview .homelab-custom-editor { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin:1rem 0; }
+  #homelab-rgb-preview .homelab-custom-editor label { display:flex; align-items:center; gap:.5rem; }
+  #homelab-rgb-preview [hidden] { display:none !important; }
+  @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
+  @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
+</style>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=5"></script>

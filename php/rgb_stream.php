@@ -5,6 +5,43 @@ const HOMELAB_STREAM_LED_COUNT = 303;
 const HOMELAB_STREAM_FAN_LEDS = 12;
 // Clockwise around the pair: top left to top right, then bottom right to left.
 const HOMELAB_PINWHEEL_ORDER = [2, 3, 4, 5, 6, 7, 8, 20, 21, 22, 23, 12, 13, 14];
+const HOMELAB_STREAM_TUNING_DEFAULTS = [
+  'period_seconds' => 6,
+  'direction' => 'clockwise',
+  'hue_degrees' => 0,
+  'brightness_pct' => 100,
+  'bottom_phase_steps' => 0,
+  'rainbow_cycles' => 1,
+  'fade_pct' => 35,
+];
+
+function homelab_stream_tuning($input)
+{
+  if (!is_array($input)) {
+    throw new InvalidArgumentException('Invalid lighting settings.');
+  }
+  $settings = HOMELAB_STREAM_TUNING_DEFAULTS;
+  foreach (['period_seconds' => [2, 20], 'hue_degrees' => [0, 359],
+    'brightness_pct' => [10, 100], 'bottom_phase_steps' => [-6, 6],
+    'rainbow_cycles' => [1, 3], 'fade_pct' => [0, 80]] as $key => [$min, $max]) {
+    if (!array_key_exists($key, $input)) {
+      continue;
+    }
+    $value = $input[$key];
+    if ((!is_int($value) && (!is_string($value) || !preg_match('/^-?[0-9]+$/D', $value))) ||
+        (int) $value < $min || (int) $value > $max) {
+      throw new InvalidArgumentException('Choose valid lighting settings.');
+    }
+    $settings[$key] = (int) $value;
+  }
+  if (array_key_exists('direction', $input)) {
+    if (!in_array($input['direction'], ['clockwise', 'counterclockwise'], true)) {
+      throw new InvalidArgumentException('Choose valid lighting settings.');
+    }
+    $settings['direction'] = $input['direction'];
+  }
+  return $settings;
+}
 
 function homelab_stream_runtime_dir()
 {
@@ -61,23 +98,87 @@ function homelab_stream_color_wheel($hue)
   return sprintf('%02X%02X%02X', ...$channels);
 }
 
+function homelab_stream_brightness($color, $percent)
+{
+  if ($percent === 100) {
+    return $color;
+  }
+  $channels = str_split($color, 2);
+  return sprintf('%02X%02X%02X', ...array_map(
+    fn($channel) => (int) round(hexdec($channel) * $percent / 100), $channels
+  ));
+}
+
+function homelab_stream_validate_led_colors($colors)
+{
+  if (!is_array($colors) || array_keys($colors) !== range(0, 23)) {
+    throw new InvalidArgumentException('Choose a color for each of the 24 LEDs.');
+  }
+  foreach ($colors as $color) {
+    if (!is_string($color) || !preg_match('/^[0-9A-Fa-f]{6}$/D', $color)) {
+      throw new InvalidArgumentException('Choose valid LED colors.');
+    }
+  }
+  return array_map('strtoupper', $colors);
+}
+
+function homelab_stream_blend_frame($previous, $target, $fade_pct)
+{
+  if ($fade_pct === 0) {
+    return $target;
+  }
+  $blended = [];
+  foreach ($target as $index => $color) {
+    $old = $previous[$index];
+    $channels = [];
+    for ($channel = 0; $channel < 3; $channel++) {
+      $offset = $channel * 2;
+      $old_value = hexdec(substr($old, $offset, 2));
+      $new_value = hexdec(substr($color, $offset, 2));
+      $channels[] = (int) round(($old_value * $fade_pct + $new_value * (100 - $fade_pct)) / 100);
+    }
+    $blended[] = sprintf('%02X%02X%02X', ...$channels);
+  }
+  return $blended;
+}
+
 function homelab_stream_leds($config, $elapsed = 0)
 {
+  $tuning = homelab_stream_tuning($config);
+  if (($config['effect'] ?? null) === 'custom-leds') {
+    return array_map(
+      fn($color) => homelab_stream_brightness($color, $tuning['brightness_pct']),
+      homelab_stream_validate_led_colors($config['leds'] ?? null)
+    );
+  }
+  $cycles = $tuning['rainbow_cycles'];
+  $phase = (int) floor($elapsed * 1536 * $cycles / $tuning['period_seconds']);
+  if ($tuning['direction'] === 'counterclockwise') {
+    $phase = -$phase;
+  }
+  $hue_offset = (int) round($tuning['hue_degrees'] * 1536 / 360);
+  $bottom_offset = $tuning['bottom_phase_steps'] * 128 * $cycles;
   if (($config['effect'] ?? null) === 'synchronized-rainbow') {
     $leds = [];
-    $phase = (int) floor($elapsed * 256);
     for ($i = 0; $i < 24; $i++) {
-      $leds[] = homelab_stream_color_wheel(($i % HOMELAB_STREAM_FAN_LEDS) * 128 - $phase);
+      $hue = ($i % HOMELAB_STREAM_FAN_LEDS) * 128 * $cycles + $hue_offset - $phase;
+      if ($i >= HOMELAB_STREAM_FAN_LEDS) {
+        $hue += $bottom_offset;
+      }
+      $leds[] = homelab_stream_brightness(homelab_stream_color_wheel($hue), $tuning['brightness_pct']);
     }
     return $leds;
   }
   if (in_array($config['effect'] ?? null, ['pinwheel-rainbow', 'center-rainbow'], true)) {
     $leds = array_fill(0, 24, '000000');
-    $phase = (int) floor($elapsed * 256);
     foreach (HOMELAB_PINWHEEL_ORDER as $step => $index) {
       // Spread one complete rainbow around the combined outer perimeter.
-      $hue = (int) round($step * 1536 / count(HOMELAB_PINWHEEL_ORDER));
-      $leds[$index] = homelab_stream_color_wheel($hue - $phase);
+      $hue = (int) round($step * 1536 * $cycles / count(HOMELAB_PINWHEEL_ORDER));
+      $hue += $hue_offset - $phase;
+      if ($index >= HOMELAB_STREAM_FAN_LEDS) {
+        $hue += $bottom_offset;
+      }
+      $leds[$index] = homelab_stream_brightness(homelab_stream_color_wheel($hue), $tuning['brightness_pct']);
     }
     return $leds;
   }

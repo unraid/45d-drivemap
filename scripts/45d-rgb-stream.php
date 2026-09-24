@@ -45,8 +45,21 @@ register_shutdown_function(function () use ($pid_path, $pid) {
   }
 });
 $started = microtime(true);
+$previous = array_fill(0, 24, '000000');
+$fade_pct = homelab_stream_tuning($config)['fade_pct'];
+$animated = in_array($config['effect'] ?? null,
+  ['pinwheel-rainbow', 'center-rainbow', 'synchronized-rainbow'], true);
+$frame_interval = $animated ? 1 / 15 : 1 / 5;
+$next_frame = microtime(true);
 while ($running) {
-  $leds = homelab_stream_leds($config, microtime(true) - $started);
+  $now = microtime(true);
+  if ($now < $next_frame) {
+    usleep((int) (($next_frame - $now) * 1000000));
+  }
+  $frame_started = microtime(true);
+  $next_frame = $frame_started + $frame_interval;
+  $target = homelab_stream_leds($config, microtime(true) - $started);
+  $leds = homelab_stream_blend_frame($previous, $target, $fade_pct);
   foreach (homelab_stream_packets($leds) as $packet) {
     if (fwrite($fd, $packet) !== 65) {
       fwrite(STDERR, "X4 RGB write failed\n");
@@ -55,6 +68,6 @@ while ($running) {
     usleep(1000);
   }
   while (($response = fread($fd, 64)) !== false && $response !== '') {}
-  usleep(180000);
+  $previous = $leds;
 }
 fclose($fd);

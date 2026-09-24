@@ -47,6 +47,39 @@ check(count($aligned) === 24 && array_slice($aligned, 0, 12) === array_slice($al
   'synchronized rainbow uses same phase at matching positions on both fans');
 check($aligned === homelab_stream_leds(['effect' => 'synchronized-rainbow'], 6),
   'synchronized rainbow repeats after one full rotation');
+check(homelab_stream_tuning([]) === HOMELAB_STREAM_TUNING_DEFAULTS,
+  'streamed effects have stable defaults');
+check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'brightness_pct' => 50])[0] === '800000',
+  'brightness scales the streamed RGB frame');
+$shifted = homelab_stream_leds(['effect' => 'synchronized-rainbow', 'bottom_phase_steps' => 3]);
+check($shifted[0] !== $shifted[12] && $shifted[12] === $shifted[3],
+  'bottom alignment changes only its phase');
+check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'direction' => 'clockwise'], 1) !==
+  homelab_stream_leds(['effect' => 'synchronized-rainbow', 'direction' => 'counterclockwise'], 1),
+  'direction changes the animation');
+check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'rainbow_cycles' => 2])[1] !== $aligned[1],
+  'rainbow repeats change color spacing');
+$split = array_merge(array_fill(0, 12, 'FF4500'), array_fill(0, 12, '0000FF'));
+check(homelab_stream_leds(['effect' => 'custom-leds', 'leds' => $split]) === $split,
+  'custom LED frame supports orange and blue fan split');
+$one_led = array_fill(0, 24, '000000');
+$one_led[17] = '12AB34';
+check(homelab_stream_leds(['effect' => 'custom-leds', 'leds' => $one_led])[17] === '12AB34' &&
+  count(array_filter($one_led, fn($color) => $color !== '000000')) === 1,
+  'custom LED frame supports a single painted LED');
+check(homelab_stream_blend_frame(array_fill(0, 24, '000000'), array_fill(0, 24, 'FFFFFF'), 50)[0] === '808080',
+  'fade blends adjacent streamed frames');
+check(homelab_stream_blend_frame(array_fill(0, 24, '000000'), $split, 0) === $split,
+  'zero fade preserves target colors');
+foreach ([['period_seconds' => '0'], ['brightness_pct' => ['100']],
+  ['bottom_phase_steps' => '7'], ['direction' => 'sideways'], ['fade_pct' => '81']] as $bad_tuning) {
+  check(!homelab_rgb_set_stream_effect('synchronized-rainbow', $bad_tuning)['ok'],
+    'rejects invalid tuning before opening controller');
+}
+check(!homelab_rgb_set_custom(json_encode(array_fill(0, 23, 'FFFFFF')))['ok'],
+  'rejects custom frames without exactly 24 LEDs');
+check(!homelab_rgb_set_custom(json_encode(array_merge(array_fill(0, 23, 'FFFFFF'), ['invalid'])))['ok'],
+  'rejects invalid custom LED colors');
 check(!homelab_rgb_set_separate('bad', 'blue')['ok'], 'rejects unknown separate preset');
 file_put_contents($fixture, "0: ASRock B860I WiFi\n  Modes: [Off] Static Wave Rainbow Direct\n  Zones: 'Addressable Header 1' 'Other Header'\n");
 check(!homelab_rgb_detect($binary)['ok'], 'rejects controller with other zones');
@@ -74,9 +107,12 @@ include dirname(__DIR__) . '/HomeLab.page';
 $page = ob_get_clean();
 check(strpos($page, 'Orange applied to fan lights.') !== false, 'page accepts validated POST without token field');
 check(strpos($page, 'Rainbow Flow') !== false, 'page lists animated effects');
-check(strpos($page, 'Apply separate colors') !== false && strpos($page, 'Synchronized Rainbow') !== false &&
-  strpos($page, 'Apply previewed pattern') !== false,
-  'page offers separate colors and animated preview');
+check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan colors') !== false &&
+  strpos($page, 'Synchronized Rainbow') !== false && strpos($page, 'bottom_phase_steps') !== false &&
+  strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit selected LED') !== false &&
+  strpos($page, 'data-led-popover') !== false &&
+  strpos($page, 'name="fade_pct"') !== false,
+  'page offers tuned animations and custom LED painting');
 unset($_SERVER['REQUEST_METHOD'], $_POST, $var);
 putenv('HOMELAB_OPENRGB_BIN');
 file_put_contents($fixture, "0: Other controller\n  Modes: [Off] Static\n  Zones: 'Addressable Header 1'\n");

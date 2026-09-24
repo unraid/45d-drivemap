@@ -33,11 +33,18 @@ OpenRGB runtime. The X4 controller must appear as `ASRock B860I WiFi` with
 Select Off, White, Warm White, Red, Orange, Yellow, Green, Teal, Cyan, Blue,
 Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
 Cycle. Click **Apply lighting**.
-The same settings page also offers independent solid colors for the top and
-bottom fans, an Outer Loop rainbow, and a Synchronized Rainbow effect. The
-settings page previews both animated patterns at the fan hubs. These use a
-continuously running RGB stream; applying any global option stops it and returns control to
-OpenRGB. Fan speed is unaffected.
+The lighting editor also offers independent solid colors for the top and
+bottom fans, an Outer Loop rainbow, a Synchronized Rainbow effect, and custom
+colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open its
+color editor, or fill either fan. The orange/blue split button provides a
+starting palette. Apply the lighting to send it to the fans. The palette is saved at
+`/boot/config/plugins/45homelab/rgb-custom.json`.
+
+The preview has controls for rotation time, direction, hue shift, brightness,
+bottom fan alignment, rainbow repeats, and fade. Animated streams run at 15
+frames per second. Static custom palettes run at 5 frames per second. Applying
+any global option stops the stream and returns control to OpenRGB. Fan speed is
+unaffected.
 The control targets only the X4 addressable header. Other OpenRGB devices are
 left alone. Applying a color changes the controller now; persistence across a
 power cycle has not been verified.

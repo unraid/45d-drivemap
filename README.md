@@ -36,6 +36,8 @@ Cycle. Click **Apply lighting**.
 The control targets only the X4 addressable header. Other OpenRGB devices are
 left alone. Applying a color changes the controller now; persistence across a
 power cycle has not been verified.
+The two daisy-chained ARCTIC fans on the tested X4 show mirrored built-in
+effects. A flow originating between them needs independent LED addressing.
 
 ## Getting Started
 

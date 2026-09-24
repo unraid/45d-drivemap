@@ -3,6 +3,8 @@
 // The X4 has two 12-LED fans in series on the ASRock ARGB header.
 const HOMELAB_STREAM_LED_COUNT = 303;
 const HOMELAB_STREAM_FAN_LEDS = 12;
+// Clockwise around the pair: top left to top right, then bottom right to left.
+const HOMELAB_PINWHEEL_ORDER = [2, 3, 4, 5, 6, 7, 8, 20, 21, 22, 23, 12, 13, 14];
 
 function homelab_stream_runtime_dir()
 {
@@ -61,13 +63,21 @@ function homelab_stream_color_wheel($hue)
 
 function homelab_stream_leds($config, $elapsed = 0)
 {
-  if (($config['effect'] ?? null) === 'center-rainbow') {
+  if (($config['effect'] ?? null) === 'synchronized-rainbow') {
     $leds = [];
-    $phase = (int) floor($elapsed * 170);
+    $phase = (int) floor($elapsed * 256);
     for ($i = 0; $i < 24; $i++) {
-      // The junction is the end of the first fan and start of the second.
-      $distance = $i < 12 ? 11 - $i : $i - 12;
-      $leds[] = homelab_stream_color_wheel($distance * 100 - $phase);
+      $leds[] = homelab_stream_color_wheel(($i % HOMELAB_STREAM_FAN_LEDS) * 128 - $phase);
+    }
+    return $leds;
+  }
+  if (in_array($config['effect'] ?? null, ['pinwheel-rainbow', 'center-rainbow'], true)) {
+    $leds = array_fill(0, 24, '000000');
+    $phase = (int) floor($elapsed * 256);
+    foreach (HOMELAB_PINWHEEL_ORDER as $step => $index) {
+      // Spread one complete rainbow around the combined outer perimeter.
+      $hue = (int) round($step * 1536 / count(HOMELAB_PINWHEEL_ORDER));
+      $leds[$index] = homelab_stream_color_wheel($hue - $phase);
     }
     return $leds;
   }

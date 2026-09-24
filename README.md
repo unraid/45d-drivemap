@@ -34,8 +34,9 @@ Select Off, White, Warm White, Red, Orange, Yellow, Green, Teal, Cyan, Blue,
 Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
 Cycle. Click **Apply lighting**.
 The same settings page also offers independent solid colors for the top and
-bottom fans and a Center-out Rainbow effect. These use a continuously running
-RGB stream; applying any global option stops the stream and returns control to
+bottom fans, an Outer Loop rainbow, and a Synchronized Rainbow effect. The
+settings page previews both animated patterns at the fan hubs. These use a
+continuously running RGB stream; applying any global option stops it and returns control to
 OpenRGB. Fan speed is unaffected.
 The control targets only the X4 addressable header. Other OpenRGB devices are
 left alone. Applying a color changes the controller now; persistence across a
@@ -44,7 +45,7 @@ The two daisy-chained ARCTIC fans on the tested X4 form a 24-LED serial chain:
 LEDs 1–12 are the top fan and 13–24 are the bottom fan. The independent controls
 use the ASRock USB controller's HID stream. A fixed white/blue test and an
 alternating white/blue test confirmed this mapping on the X4. The stream runs
-while independent colors or Center-out Rainbow are selected and ends when a
+while independent colors or a streamed effect are selected and ends when a
 global lighting option is applied or the plugin is removed. Persistence across
 a reboot has not been verified.
 

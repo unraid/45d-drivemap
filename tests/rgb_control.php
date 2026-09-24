@@ -31,9 +31,22 @@ check(substr($packets[0], 0, 9) === "\x00\x10\x00\xff\xe3\x00\x00\x2f\x01" &&
   substr($packets[0], 45, 18) === str_repeat("\x00\x00\xff", 6) &&
   substr($packets[1], 5, 18) === str_repeat("\x00\x00\xff", 6),
   'encodes both fans in SignalRGB-style stream packets');
-$rainbow = homelab_stream_leds(['effect' => 'center-rainbow'], 0);
-check($rainbow[11] === $rainbow[12] && $rainbow[10] === $rainbow[13] && $rainbow[0] === $rainbow[23],
-  'center rainbow mirrors outward from junction');
+$rainbow = homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 0);
+check($rainbow[0] === '000000' && $rainbow[11] === '000000' &&
+  $rainbow[12] !== '000000' && $rainbow[23] !== '000000',
+  'pinwheel blanks inward hub LEDs and lights outward arcs');
+check(count(array_filter($rainbow, fn($color) => $color !== '000000')) === 14,
+  'pinwheel lights seven outward LEDs per fan');
+check($rainbow[8] !== $rainbow[20] && $rainbow[14] !== $rainbow[2] &&
+  count(array_unique(array_map(fn($index) => $rainbow[$index], HOMELAB_PINWHEEL_ORDER))) === 14,
+  'pinwheel spreads all rainbow hues across one perimeter');
+check($rainbow === homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 6),
+  'pinwheel repeats after one full rotation');
+$aligned = homelab_stream_leds(['effect' => 'synchronized-rainbow'], 0);
+check(count($aligned) === 24 && array_slice($aligned, 0, 12) === array_slice($aligned, 12, 12),
+  'synchronized rainbow uses same phase at matching positions on both fans');
+check($aligned === homelab_stream_leds(['effect' => 'synchronized-rainbow'], 6),
+  'synchronized rainbow repeats after one full rotation');
 check(!homelab_rgb_set_separate('bad', 'blue')['ok'], 'rejects unknown separate preset');
 file_put_contents($fixture, "0: ASRock B860I WiFi\n  Modes: [Off] Static Wave Rainbow Direct\n  Zones: 'Addressable Header 1' 'Other Header'\n");
 check(!homelab_rgb_detect($binary)['ok'], 'rejects controller with other zones');
@@ -61,8 +74,9 @@ include dirname(__DIR__) . '/HomeLab.page';
 $page = ob_get_clean();
 check(strpos($page, 'Orange applied to fan lights.') !== false, 'page accepts validated POST without token field');
 check(strpos($page, 'Rainbow Flow') !== false, 'page lists animated effects');
-check(strpos($page, 'Apply separate colors') !== false && strpos($page, 'Center-out Rainbow') !== false,
-  'page offers separate colors and center flow');
+check(strpos($page, 'Apply separate colors') !== false && strpos($page, 'Synchronized Rainbow') !== false &&
+  strpos($page, 'Apply previewed pattern') !== false,
+  'page offers separate colors and animated preview');
 unset($_SERVER['REQUEST_METHOD'], $_POST, $var);
 putenv('HOMELAB_OPENRGB_BIN');
 file_put_contents($fixture, "0: Other controller\n  Modes: [Off] Static\n  Zones: 'Addressable Header 1'\n");

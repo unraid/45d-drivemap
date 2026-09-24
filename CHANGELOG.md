@@ -6,7 +6,7 @@
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
 - Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
 - Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.
-- Added separate top and bottom fan colors and a Center-out Rainbow effect for the X4's 24-LED chain.
+- Added separate top and bottom fan colors, Outer Loop and Synchronized Rainbow effects, and a hub LED preview for the X4's 24-LED chain.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed

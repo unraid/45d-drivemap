@@ -122,9 +122,14 @@ function homelab_rgb_set_separate($top, $bottom)
   return homelab_stream_start(['top' => $top_color, 'bottom' => $bottom_color]);
 }
 
-function homelab_rgb_set_center_rainbow()
+function homelab_rgb_set_pinwheel()
 {
-  return homelab_stream_start(['effect' => 'center-rainbow']);
+  return homelab_stream_start(['effect' => 'pinwheel-rainbow']);
+}
+
+function homelab_rgb_set_synchronized_rainbow()
+{
+  return homelab_stream_start(['effect' => 'synchronized-rainbow']);
 }
 
 function homelab_rgb_stream_selection()

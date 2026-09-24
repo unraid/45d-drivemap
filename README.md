@@ -31,7 +31,8 @@ OpenRGB runtime. The X4 controller must appear as `ASRock B860I WiFi` with
 `Addressable Header 1` in `openrgb --list-detailed`.
 
 Select Off, White, Warm White, Red, Orange, Yellow, Green, Teal, Cyan, Blue,
-Purple, or Pink and click **Apply color**.
+Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
+Cycle. Click **Apply lighting**.
 The control targets only the X4 addressable header. Other OpenRGB devices are
 left alone. Applying a color changes the controller now; persistence across a
 power cycle has not been verified.

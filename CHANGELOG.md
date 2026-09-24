@@ -5,11 +5,17 @@
 ### Added
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
 - Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
+- Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed
 - Renamed the Unraid plugin to 45HomeLab and moved its settings under System Settings.
 - Preserved drive-map overrides from existing 45d-drivemap installations during installation.
+- Tuned the Orange preset to look less yellow on the X4 fans.
+
+### Fixed
+- Target the X4 controller without OpenRGB's zone flag, which accepts commands but leaves the fan lights unchanged on this board.
+- Let Unraid handle CSRF validation for the lighting form; its request handler removes the token before the page runs.
 
 ## 0.4.0
 

@@ -14,19 +14,13 @@ require_once $rgb_helper;
 $message = null;
 $error = null;
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-  $expected_token = (string)($var['csrf_token'] ?? '');
-  $given_token = $_POST['csrf_token'] ?? '';
-  $given_token = is_string($given_token) ? $given_token : '';
-  if ($expected_token === '' || !hash_equals($expected_token, $given_token)) {
-    $error = 'Request expired. Reload this page and try again.';
+  // Unraid validates and removes csrf_token before rendering this page.
+  $preset = $_POST['color'] ?? '';
+  $result = homelab_rgb_set($preset);
+  if ($result['ok']) {
+    $message = homelab_rgb_label($preset) . ' applied to fan lights.';
   } else {
-    $preset = $_POST['color'] ?? '';
-    $result = homelab_rgb_set($preset);
-    if ($result['ok']) {
-      $message = HOMELAB_RGB_PRESETS[$preset]['label'] . ' applied to fan lights.';
-    } else {
-      $error = $result['error'];
-    }
+    $error = $result['error'];
   }
 }
 $detected = homelab_rgb_detect();
@@ -37,7 +31,7 @@ if (!$ready && $error === null) {
 ?>
 <div style="max-width: 48rem;">
   <h2>Fan lighting</h2>
-  <p>Set one solid color for the X4 fans connected to the ASRock addressable header.</p>
+  <p>Set a solid color or animated effect for the X4 fans connected to the ASRock addressable header.</p>
   <?php if ($message): ?>
     <p role="status"><?=htmlspecialchars($message, ENT_QUOTES, 'UTF-8')?></p>
   <?php endif; ?>
@@ -46,13 +40,20 @@ if (!$ready && $error === null) {
   <?php endif; ?>
   <form method="post">
     <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
-    <label for="homelab-fan-color">Color</label>
+    <label for="homelab-fan-color">Lighting</label>
     <select id="homelab-fan-color" name="color" <?=$ready ? '' : 'disabled'?>>
-      <option value="" selected disabled>Choose a color</option>
-      <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
-        <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>"><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
-      <?php endforeach; ?>
+      <option value="" selected disabled>Choose lighting</option>
+      <optgroup label="Solid colors">
+        <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
+          <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>"><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
+        <?php endforeach; ?>
+      </optgroup>
+      <optgroup label="Animated effects">
+        <?php foreach (HOMELAB_RGB_EFFECTS as $value => $effect): ?>
+          <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>"><?=htmlspecialchars($effect['label'], ENT_QUOTES, 'UTF-8')?></option>
+        <?php endforeach; ?>
+      </optgroup>
     </select>
-    <input type="submit" value="Apply color" <?=$ready ? '' : 'disabled'?>>
+    <input type="submit" value="Apply lighting" <?=$ready ? '' : 'disabled'?>>
   </form>
 </div>

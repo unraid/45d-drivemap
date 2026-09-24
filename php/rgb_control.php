@@ -9,7 +9,7 @@ const HOMELAB_RGB_PRESETS = [
   'white' => ['label' => 'White', 'color' => 'FFFFFF'],
   'warm-white' => ['label' => 'Warm White', 'color' => 'FFD8A8'],
   'red' => ['label' => 'Red', 'color' => 'FF0000'],
-  'orange' => ['label' => 'Orange', 'color' => 'FF7800'],
+  'orange' => ['label' => 'Orange', 'color' => 'FF4500'],
   'yellow' => ['label' => 'Yellow', 'color' => 'FFFF00'],
   'green' => ['label' => 'Green', 'color' => '00FF00'],
   'teal' => ['label' => 'Teal', 'color' => '00BFA5'],
@@ -18,6 +18,16 @@ const HOMELAB_RGB_PRESETS = [
   'purple' => ['label' => 'Purple', 'color' => '8000FF'],
   'pink' => ['label' => 'Pink', 'color' => 'FF69B4'],
 ];
+const HOMELAB_RGB_EFFECTS = [
+  'rainbow-flow' => ['label' => 'Rainbow Flow', 'mode' => 'Rainbow'],
+  'color-wave' => ['label' => 'Color Wave', 'mode' => 'Wave'],
+  'spectrum-cycle' => ['label' => 'Spectrum Cycle', 'mode' => 'Spectrum Cycle'],
+];
+
+function homelab_rgb_label($preset)
+{
+  return HOMELAB_RGB_PRESETS[$preset]['label'] ?? HOMELAB_RGB_EFFECTS[$preset]['label'] ?? null;
+}
 
 function homelab_openrgb_binary()
 {
@@ -47,7 +57,7 @@ function homelab_openrgb_run($args, $binary = null)
   return [
     'ok' => $exit_code === 0,
     'output' => $output,
-    'error' => $exit_code === 124 ? 'OpenRGB timed out.' : 'OpenRGB failed. Check its installation and device access.',
+    'error' => $exit_code === 0 ? null : ($exit_code === 124 ? 'OpenRGB timed out.' : 'OpenRGB failed. Check its installation and device access.'),
   ];
 }
 
@@ -62,8 +72,8 @@ function homelab_rgb_detect($binary = null)
     if (!preg_match('/^\d+: ASRock B860I WiFi\r?$/m', $device)) {
       continue;
     }
-    $device_found = preg_match("/^  Zones:.*'" . preg_quote(HOMELAB_RGB_ZONE, '/') . "'/m", $device) &&
-      preg_match('/^  Modes:.*\bOff\b.*\bStatic\b/m', $device);
+    $device_found = preg_match("/^  Zones: '" . preg_quote(HOMELAB_RGB_ZONE, '/') . "'\\r?$/m", $device) &&
+      preg_match('/^  Modes:.*\bOff\b.*\bStatic\b.*\bWave\b.*\bRainbow\b/m', $device);
     break;
   }
   if (!$device_found) {
@@ -74,19 +84,24 @@ function homelab_rgb_detect($binary = null)
 
 function homelab_rgb_set($preset, $binary = null)
 {
-  if (!is_string($preset) || !isset(HOMELAB_RGB_PRESETS[$preset])) {
-    return ['ok' => false, 'error' => 'Choose a listed color.'];
+  if (!is_string($preset) || homelab_rgb_label($preset) === null) {
+    return ['ok' => false, 'error' => 'Choose a listed lighting option.'];
   }
   $detected = homelab_rgb_detect($binary);
   if (!$detected['ok']) {
     return $detected;
   }
-  $args = ['--device', HOMELAB_RGB_DEVICE, '--zone', '0'];
-  $color = HOMELAB_RGB_PRESETS[$preset]['color'];
-  if ($color === null) {
-    $args = array_merge($args, ['--mode', 'Off']);
+  // This board exposes one zone. OpenRGB accepts --zone 0 but does not apply
+  // colors on the X4 when it is present, so target the verified device only.
+  $args = ['--device', HOMELAB_RGB_DEVICE];
+  if (isset(HOMELAB_RGB_EFFECTS[$preset])) {
+    $args = array_merge($args, ['--mode', HOMELAB_RGB_EFFECTS[$preset]['mode']]);
   } else {
-    $args = array_merge($args, ['--mode', 'Static', '--color', $color]);
+    $color = HOMELAB_RGB_PRESETS[$preset]['color'];
+    $args = array_merge($args, ['--mode', $color === null ? 'Off' : 'Static']);
+    if ($color !== null) {
+      $args = array_merge($args, ['--color', $color]);
+    }
   }
   return homelab_openrgb_run($args, $binary);
 }

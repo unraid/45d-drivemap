@@ -8,6 +8,7 @@
 - Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.
 - Added separate top and bottom fan colors, Outer Loop and Synchronized Rainbow effects, and a hub LED preview for the X4's 24-LED chain.
 - Added a unified lighting editor with previews for all modes, per-LED color popovers, custom palette saving, and live tuning controls for streamed effects.
+- Added 45D x Unraid, Comet, and Orange / Blue Pulse animated loops.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed
@@ -19,6 +20,7 @@
 ### Fixed
 - Target the X4 controller without OpenRGB's zone flag, which accepts commands but leaves the fan lights unchanged on this board.
 - Let Unraid handle CSRF validation for the lighting form; its request handler removes the token before the page runs.
+- Ensure faded LEDs reach fully off instead of remaining dimly lit.
 
 ## 0.4.0
 

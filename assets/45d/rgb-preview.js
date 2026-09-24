@@ -37,6 +37,9 @@
   const descriptions = {
     'pinwheel-rainbow': 'One rainbow moves around the outward-facing hub LEDs.',
     'synchronized-rainbow': 'Both fans show the same color at the same clock position.',
+    'brand-loop': '45D orange and Unraid blue flow around both outer hub arcs.',
+    'comet-loop': 'A blue-white comet and fading tail travel around both outer hub arcs.',
+    'orange-blue-pulse': 'Top orange and bottom blue alternate in a gentle pulse.',
     'custom-leds': 'Select a hub LED to edit its color. Apply the full palette when ready.',
     global: 'Whole-header solid colors appear on both fans. Built-in animated effects are approximate in this preview.',
     separate: 'Top and bottom fans have independent solid colors.'
@@ -66,6 +69,14 @@
     return channels.map((channel) => Math.round(channel * brightness / 100));
   }
 
+  function mixColor(first, second, ratio) {
+    return first.map((start, channel) => Math.round(start * (1 - ratio) + second[channel] * ratio));
+  }
+
+  function scaleColor(color, level) {
+    return color.map((channel) => Math.round(channel * Math.max(0, Math.min(1, level))));
+  }
+
   function targetColor(index) {
     if (mode.value === 'global' || mode.value === 'separate') {
       let preset = mode.value === 'global' ? globalPreset.value :
@@ -87,6 +98,31 @@
     }
     const cycles = Number(fields.rainbow_cycles.value);
     const direction = fields.direction.value === 'counterclockwise' ? -1 : 1;
+    const time = elapsed * cycles / Number(fields.period_seconds.value);
+    const alignment = index >= 12 ? Number(fields.bottom_phase_steps.value) : 0;
+    if (mode.value === 'orange-blue-pulse') {
+      const offset = index >= 12 ? 0.5 + alignment / 12 : 0;
+      const angle = 2 * Math.PI * (direction * time + offset);
+      const level = 0.25 + 0.75 * (0.5 + 0.5 * Math.cos(angle));
+      const color = index >= 12 ? [0, 0, 255] : [255, 69, 0];
+      return scaleColor(scaleColor(color, level), brightness / 100);
+    }
+    if (mode.value === 'brand-loop' || mode.value === 'comet-loop') {
+      const step = rank.get(index);
+      if (step === undefined) return [0, 0, 0];
+      const position = (step + alignment) * cycles - direction * time * order.length;
+      let color;
+      if (mode.value === 'brand-loop') {
+        const ratio = 0.5 + 0.5 * Math.cos(2 * Math.PI * position / order.length);
+        color = mixColor([0, 0, 255], [255, 69, 0], ratio);
+      } else {
+        const distance = ((position % order.length) + order.length) % order.length;
+        const level = Math.max(0, 1 - distance / 4) ** 2;
+        const head = Math.max(0, 1 - distance);
+        color = scaleColor(mixColor([0, 175, 255], [255, 255, 255], head), level);
+      }
+      return scaleColor(color, brightness / 100);
+    }
     const phase = Math.floor(elapsed * 1536 * cycles / Number(fields.period_seconds.value)) * direction;
     const hueOffset = Math.round(Number(fields.hue_degrees.value) * 1536 / 360);
     const bottomOffset = index >= 12 ? Number(fields.bottom_phase_steps.value) * 128 * cycles : 0;
@@ -104,7 +140,11 @@
     const fade = force ? 0 : Number(fields.fade_pct.value);
     displayedColors = displayedColors.map((old, index) => {
       const target = targetColor(index);
-      return target.map((value, channel) => Math.round((old[channel] * fade + value * (100 - fade)) / 100));
+      return target.map((value, channel) => {
+        let blended = Math.round((old[channel] * fade + value * (100 - fade)) / 100);
+        if (blended === old[channel] && value !== old[channel]) blended += value > old[channel] ? 1 : -1;
+        return blended;
+      });
     });
   }
 
@@ -159,13 +199,16 @@
 
   function updateMode() {
     const custom = mode.value === 'custom-leds';
-    const animated = mode.value === 'pinwheel-rainbow' || mode.value === 'synchronized-rainbow';
+    const rainbow = mode.value === 'pinwheel-rainbow' || mode.value === 'synchronized-rainbow';
+    const animated = rainbow || mode.value === 'brand-loop' || mode.value === 'comet-loop' ||
+      mode.value === 'orange-blue-pulse';
     const streamed = animated || custom;
     globalControls.hidden = mode.value !== 'global';
     separateControls.hidden = mode.value !== 'separate';
     editor.hidden = !custom;
     popover.hidden = true;
     for (const label of root.querySelectorAll('[data-animated-only]')) label.hidden = !animated;
+    for (const label of root.querySelectorAll('[data-rainbow-only]')) label.hidden = !rainbow;
     for (const label of root.querySelectorAll('[data-stream-only]')) label.hidden = !streamed;
     description.textContent = descriptions[mode.value];
     elapsed = 0;
@@ -201,7 +244,7 @@
       const ledX = x + Math.cos(angle) * 47;
       const ledY = y - Math.sin(angle) * 47;
       const channels = displayedColors[index];
-      const lit = channels.some((value) => value > 0) ? `rgb(${channels.join(',')})` : null;
+      const lit = channels.some((value) => value >= 25) ? `rgb(${channels.join(',')})` : null;
       context.shadowBlur = lit ? 20 : 0;
       context.shadowColor = lit || 'transparent';
       circle(ledX, ledY, 13, lit || palette.off, palette.border);
@@ -240,12 +283,12 @@
     const now = performance.now();
     if (running && !document.hidden && lastTime) elapsed += (now - lastTime) / 1000;
     lastTime = now;
-    if (!document.hidden && now - lastDraw >= 50) {
+    if (!document.hidden && now - lastDraw >= 65) {
       updateFrameColors();
       draw();
       lastDraw = now;
     }
-    window.setTimeout(frame, document.hidden ? 250 : 50);
+    window.setTimeout(frame, document.hidden ? 250 : 67);
   }
 
   mode.addEventListener('change', updateMode);
@@ -338,5 +381,5 @@
   updateMode();
   updateFrameColors(true);
   draw();
-  window.setTimeout(frame, 50);
+  window.setTimeout(frame, 67);
 })();

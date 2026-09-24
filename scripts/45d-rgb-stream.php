@@ -47,8 +47,8 @@ register_shutdown_function(function () use ($pid_path, $pid) {
 $started = microtime(true);
 $previous = array_fill(0, 24, '000000');
 $fade_pct = homelab_stream_tuning($config)['fade_pct'];
-$animated = in_array($config['effect'] ?? null,
-  ['pinwheel-rainbow', 'center-rainbow', 'synchronized-rainbow'], true);
+$animated = isset(HOMELAB_STREAM_EFFECTS[$config['effect'] ?? '']) ||
+  ($config['effect'] ?? null) === 'center-rainbow';
 $frame_interval = $animated ? 1 / 15 : 1 / 5;
 $next_frame = microtime(true);
 while ($running) {

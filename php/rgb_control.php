@@ -124,7 +124,7 @@ function homelab_rgb_set_separate($top, $bottom)
 
 function homelab_rgb_set_stream_effect($effect, $input = [])
 {
-  if (!in_array($effect, ['pinwheel-rainbow', 'synchronized-rainbow'], true)) {
+  if (!is_string($effect) || !isset(HOMELAB_STREAM_EFFECTS[$effect])) {
     return ['ok' => false, 'error' => 'Choose a listed lighting option.'];
   }
   try {

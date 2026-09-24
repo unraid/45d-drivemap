@@ -47,6 +47,27 @@ check(count($aligned) === 24 && array_slice($aligned, 0, 12) === array_slice($al
   'synchronized rainbow uses same phase at matching positions on both fans');
 check($aligned === homelab_stream_leds(['effect' => 'synchronized-rainbow'], 6),
   'synchronized rainbow repeats after one full rotation');
+$brand = homelab_stream_leds(['effect' => 'brand-loop'], 0);
+check($brand[HOMELAB_PINWHEEL_ORDER[0]] === 'FF4500' &&
+  $brand[HOMELAB_PINWHEEL_ORDER[7]] === '0000FF' &&
+  count(array_filter($brand, fn($color) => $color !== '000000')) === 14,
+  '45D x Unraid loop places orange and blue on the outer arc');
+check($brand === homelab_stream_leds(['effect' => 'brand-loop'], 6) &&
+  $brand !== homelab_stream_leds(['effect' => 'brand-loop'], 1),
+  'branded loop moves and repeats');
+$comet = homelab_stream_leds(['effect' => 'comet-loop'], 0);
+check($comet[HOMELAB_PINWHEEL_ORDER[0]] === 'FFFFFF' &&
+  $comet[HOMELAB_PINWHEEL_ORDER[1]] !== '000000' &&
+  $comet[HOMELAB_PINWHEEL_ORDER[4]] === '000000',
+  'comet has white head and short fading tail');
+check($comet === homelab_stream_leds(['effect' => 'comet-loop'], 6),
+  'comet completes a loop');
+$pulse = homelab_stream_leds(['effect' => 'orange-blue-pulse'], 0);
+check($pulse[0] === 'FF4500' && $pulse[12] === '000040' &&
+  homelab_stream_leds(['effect' => 'orange-blue-pulse'], 3)[12] === '0000FF',
+  'orange and blue hubs pulse in opposite phases');
+check($pulse === homelab_stream_leds(['effect' => 'orange-blue-pulse'], 6),
+  'dual pulse repeats');
 check(homelab_stream_tuning([]) === HOMELAB_STREAM_TUNING_DEFAULTS,
   'streamed effects have stable defaults');
 check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'brightness_pct' => 50])[0] === '800000',
@@ -71,6 +92,8 @@ check(homelab_stream_blend_frame(array_fill(0, 24, '000000'), array_fill(0, 24, 
   'fade blends adjacent streamed frames');
 check(homelab_stream_blend_frame(array_fill(0, 24, '000000'), $split, 0) === $split,
   'zero fade preserves target colors');
+check(homelab_stream_blend_frame(array_fill(0, 24, '010101'), array_fill(0, 24, '000000'), 80)[0] === '000000',
+  'fade lets dim LEDs turn fully off');
 foreach ([['period_seconds' => '0'], ['brightness_pct' => ['100']],
   ['bottom_phase_steps' => '7'], ['direction' => 'sideways'], ['fade_pct' => '81']] as $bad_tuning) {
   check(!homelab_rgb_set_stream_effect('synchronized-rainbow', $bad_tuning)['ok'],
@@ -78,6 +101,8 @@ foreach ([['period_seconds' => '0'], ['brightness_pct' => ['100']],
 }
 check(!homelab_rgb_set_custom(json_encode(array_fill(0, 23, 'FFFFFF')))['ok'],
   'rejects custom frames without exactly 24 LEDs');
+check(!homelab_rgb_set_stream_effect('unknown-loop')['ok'],
+  'rejects unlisted streamed effects');
 check(!homelab_rgb_set_custom(json_encode(array_merge(array_fill(0, 23, 'FFFFFF'), ['invalid'])))['ok'],
   'rejects invalid custom LED colors');
 check(!homelab_rgb_set_separate('bad', 'blue')['ok'], 'rejects unknown separate preset');
@@ -109,6 +134,8 @@ check(strpos($page, 'Orange applied to fan lights.') !== false, 'page accepts va
 check(strpos($page, 'Rainbow Flow') !== false, 'page lists animated effects');
 check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan colors') !== false &&
   strpos($page, 'Synchronized Rainbow') !== false && strpos($page, 'bottom_phase_steps') !== false &&
+  strpos($page, '45D x Unraid Loop') !== false && strpos($page, 'Comet Loop') !== false &&
+  strpos($page, 'Orange / Blue Pulse') !== false &&
   strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit selected LED') !== false &&
   strpos($page, 'data-led-popover') !== false &&
   strpos($page, 'name="fade_pct"') !== false,

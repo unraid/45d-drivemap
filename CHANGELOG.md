@@ -6,12 +6,12 @@
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
 - Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
 - Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.
-- Added separate top and bottom fan colors, Outer Loop and Synchronized Rainbow effects, and a hub LED preview for the X4's 24-LED chain.
+- Added separate top and bottom fan colors, Outer Loop and Synchronized Wave effects, and a hub LED preview for the X4's 24-LED chain.
 - Added a unified lighting editor with previews for all modes, per-LED color popovers, custom palette saving, and live tuning controls for streamed effects.
-- Added 45D x Unraid, Comet, and Orange / Blue Pulse animated loops.
+- Added Two-Color Loop, Comet Loop, and Two-Color Pulse animated effects.
 - Extended each outer loop arc to nine LEDs per fan so the patterns reach farther around both sides.
 - Added selectable colors for streamed patterns, optional two-color rainbow palettes, and Comet tail length and variation controls.
-- Added per-fan skipped LED and separate middle color controls for Outer Loop, 45D x Unraid Loop, and Comet Loop.
+- Added per-fan skipped LED and separate middle color controls for Outer Loop, Two-Color Loop, and Comet Loop.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed

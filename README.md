@@ -34,16 +34,16 @@ Select Off, White, Warm White, Red, Orange, Yellow, Green, Teal, Cyan, Blue,
 Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
 Cycle. Click **Apply lighting**.
 The lighting editor also offers independent solid colors for the top and
-bottom fans, an Outer Loop rainbow, a Synchronized Rainbow effect, a 45D x
-Unraid orange/blue loop, a blue-white Comet Loop, an Orange / Blue Pulse, and
-custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open its
+bottom fans, Outer Loop, Synchronized Wave, Two-Color Loop, Comet Loop,
+Two-Color Pulse, and custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open its
 color editor, or fill either fan. The orange/blue split button provides a
 starting palette. Apply the lighting to send it to the fans. The palette is saved at
 `/boot/config/plugins/45homelab/rgb-custom.json`.
-Outer Loop, 45D x Unraid Loop, and Comet Loop skip three inward-facing LEDs per
+Outer Loop, Two-Color Loop, and Comet Loop skip three inward-facing LEDs per
 fan by default. The Skipped LEDs control sets this from zero to six per fan and
 updates the preview before applying. Middle LEDs can stay off or use a separate
-color across the skipped positions. Streamed patterns have two color pickers. Rainbow patterns can use
+color across the skipped positions. Streamed patterns have two color pickers.
+Rainbow patterns can use
 their full rainbow or blend the two chosen colors. Comet also offers tail length
 and tail variation; variation changes individual tail LEDs over time while the
 head follows the selected path.

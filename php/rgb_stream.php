@@ -9,10 +9,10 @@ const HOMELAB_TOP_SKIP_PRIORITY = [11, 10, 0, 9, 1, 8];
 const HOMELAB_BOTTOM_SKIP_PRIORITY = [17, 18, 16, 19, 15, 20];
 const HOMELAB_STREAM_EFFECTS = [
   'pinwheel-rainbow' => 'Outer Loop',
-  'synchronized-rainbow' => 'Synchronized Rainbow',
-  'brand-loop' => '45D x Unraid Loop',
+  'synchronized-rainbow' => 'Synchronized Wave',
+  'brand-loop' => 'Two-Color Loop',
   'comet-loop' => 'Comet Loop',
-  'orange-blue-pulse' => 'Orange / Blue Pulse',
+  'orange-blue-pulse' => 'Two-Color Pulse',
 ];
 const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'period_seconds' => 6,

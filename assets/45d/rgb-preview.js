@@ -62,7 +62,7 @@
     return cachedLoop;
   }
   const descriptions = {
-    'pinwheel-rainbow': 'One rainbow moves around the outward-facing hub LEDs.',
+    'pinwheel-rainbow': 'One color pattern moves around the outward-facing hub LEDs.',
     'synchronized-rainbow': 'Both fans show the same color at the same clock position.',
     'brand-loop': 'Two chosen colors flow around both outer hub arcs.',
     'comet-loop': 'A bright head travels around both outer arcs with a fading, varied tail.',

@@ -77,7 +77,7 @@ $brand = homelab_stream_leds(['effect' => 'brand-loop'], 0);
 check($brand[HOMELAB_PINWHEEL_ORDER[0]] === 'FF4500' &&
   $brand[HOMELAB_PINWHEEL_ORDER[9]] === '0000FF' &&
   count(array_filter($brand, fn($color) => $color !== '000000')) === 18,
-  '45D x Unraid loop places orange and blue on the outer arc');
+  'two-color loop places default orange and blue on the outer arc');
 check($brand === homelab_stream_leds(['effect' => 'brand-loop'], 6) &&
   $brand !== homelab_stream_leds(['effect' => 'brand-loop'], 1),
   'branded loop moves and repeats');
@@ -183,9 +183,9 @@ $page = ob_get_clean();
 check(strpos($page, 'Orange applied to fan lights.') !== false, 'page accepts validated POST without token field');
 check(strpos($page, 'Rainbow Flow') !== false, 'page lists animated effects');
 check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan colors') !== false &&
-  strpos($page, 'Synchronized Rainbow') !== false && strpos($page, 'bottom_phase_steps') !== false &&
-  strpos($page, '45D x Unraid Loop') !== false && strpos($page, 'Comet Loop') !== false &&
-  strpos($page, 'Orange / Blue Pulse') !== false && strpos($page, 'name="color_primary"') !== false &&
+  strpos($page, 'Synchronized Wave') !== false && strpos($page, 'bottom_phase_steps') !== false &&
+  strpos($page, 'Two-Color Loop') !== false && strpos($page, 'Comet Loop') !== false &&
+  strpos($page, 'Two-Color Pulse') !== false && strpos($page, 'name="color_primary"') !== false &&
   strpos($page, 'name="color_secondary"') !== false && strpos($page, 'name="tail_variation"') !== false &&
   strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit selected LED') !== false &&
   strpos($page, 'data-led-popover') !== false &&

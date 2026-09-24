@@ -40,8 +40,10 @@ custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open
 color editor, or fill either fan. The orange/blue split button provides a
 starting palette. Apply the lighting to send it to the fans. The palette is saved at
 `/boot/config/plugins/45homelab/rgb-custom.json`.
-Outer Loop, 45D x Unraid Loop, and Comet Loop use nine LEDs on the outward arc
-of each fan. Streamed patterns have two color pickers. Rainbow patterns can use
+Outer Loop, 45D x Unraid Loop, and Comet Loop skip three inward-facing LEDs per
+fan by default. The Skipped LEDs control sets this from zero to six per fan and
+updates the preview before applying. Middle LEDs can stay off or use a separate
+color across the skipped positions. Streamed patterns have two color pickers. Rainbow patterns can use
 their full rainbow or blend the two chosen colors. Comet also offers tail length
 and tail variation; variation changes individual tail LEDs over time while the
 head follows the selected path.

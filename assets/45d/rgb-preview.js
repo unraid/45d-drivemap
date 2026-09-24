@@ -31,12 +31,14 @@
   const fields = Object.fromEntries([
     'period_seconds', 'direction', 'hue_degrees', 'brightness_pct',
     'bottom_phase_steps', 'rainbow_cycles', 'fade_pct', 'palette_mode',
-    'color_primary', 'color_secondary', 'tail_leds', 'tail_variation'
+    'color_primary', 'color_secondary', 'tail_leds', 'tail_variation', 'skipped_leds',
+    'middle_enabled', 'middle_color'
   ].map((name) => [name, root.elements.namedItem(name)]));
   const defaults = {
     period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
     brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1,
-    fade_pct: 35, tail_leds: 6, tail_variation: 50
+    fade_pct: 35, tail_leds: 6, tail_variation: 50, skipped_leds: 3,
+    middle_enabled: '0', middle_color: '#ffffff'
   };
   const patternDefaults = {
     'pinwheel-rainbow': ['#ff4500', '#0000ff', 'rainbow'],
@@ -47,8 +49,18 @@
   };
   const colorDrafts = new Map();
   let lastMode = mode.value;
-  const order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 20, 21, 22, 23, 12, 13, 14, 15];
-  const rank = new Map(order.map((index, step) => [index, step]));
+  const perimeter = [...Array(12).keys(), 18, 19, 20, 21, 22, 23, 12, 13, 14, 15, 16, 17];
+  const topSkipPriority = [11, 10, 0, 9, 1, 8];
+  const bottomSkipPriority = [17, 18, 16, 19, 15, 20];
+  let cachedLoop;
+  function loopOrder() {
+    const count = Number(fields.skipped_leds.value);
+    if (cachedLoop && cachedLoop.count === count) return cachedLoop;
+    const skipped = new Set([...topSkipPriority.slice(0, count), ...bottomSkipPriority.slice(0, count)]);
+    const order = perimeter.filter((index) => !skipped.has(index));
+    cachedLoop = { count, order, rank: new Map(order.map((index, step) => [index, step])) };
+    return cachedLoop;
+  }
   const descriptions = {
     'pinwheel-rainbow': 'One rainbow moves around the outward-facing hub LEDs.',
     'synchronized-rainbow': 'Both fans show the same color at the same clock position.',
@@ -97,6 +109,12 @@
     return [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
   }
 
+  function middleColor(brightness) {
+    return fields.middle_enabled.value === '1'
+      ? scaleColor(chosenColor('middle_color'), brightness / 100)
+      : [0, 0, 0];
+  }
+
   function paletteColor(hue, brightness) {
     if (fields.palette_mode.value === 'two-color') {
       const ratio = 0.5 + 0.5 * Math.cos(2 * Math.PI * hue / 1536);
@@ -136,8 +154,9 @@
       return scaleColor(scaleColor(color, level), brightness / 100);
     }
     if (mode.value === 'brand-loop' || mode.value === 'comet-loop') {
+      const { order, rank } = loopOrder();
       const step = rank.get(index);
-      if (step === undefined) return [0, 0, 0];
+      if (step === undefined) return middleColor(brightness);
       const position = (step + alignment) * cycles - direction * time * order.length;
       let color;
       if (mode.value === 'brand-loop') {
@@ -160,8 +179,9 @@
     const hueOffset = Math.round(Number(fields.hue_degrees.value) * 1536 / 360);
     const bottomOffset = index >= 12 ? Number(fields.bottom_phase_steps.value) * 128 * cycles : 0;
     if (mode.value === 'pinwheel-rainbow') {
+      const { order, rank } = loopOrder();
       const step = rank.get(index);
-      return step === undefined ? [0, 0, 0] : paletteColor(
+      return step === undefined ? middleColor(brightness) : paletteColor(
         Math.round(step * 1536 * cycles / order.length) + hueOffset + bottomOffset - phase,
         brightness
       );
@@ -221,7 +241,8 @@
   function updateValues() {
     const units = {
       period_seconds: ' s', hue_degrees: ' deg', brightness_pct: '%',
-      bottom_phase_steps: ' LEDs', fade_pct: '%', tail_leds: ' LEDs', tail_variation: '%'
+      bottom_phase_steps: ' LEDs', fade_pct: '%', tail_leds: ' LEDs',
+      tail_variation: '%', skipped_leds: ' per fan'
     };
     for (const [name, unit] of Object.entries(units)) {
       const value = `${fields[name].value}${unit}`;
@@ -253,6 +274,13 @@
     colorPickers.hidden = !animated || (rainbow && fields.palette_mode.value === 'rainbow');
     for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;
     for (const control of root.querySelectorAll('[data-comet-only]')) control.hidden = mode.value !== 'comet-loop';
+    for (const control of root.querySelectorAll('[data-loop-only]')) {
+      control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value);
+    }
+    for (const control of root.querySelectorAll('[data-middle-color]')) {
+      control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value) ||
+        fields.middle_enabled.value !== '1';
+    }
     primaryLabel.textContent = mode.value === 'comet-loop' ? 'Head' :
       (mode.value === 'orange-blue-pulse' ? 'Top fan' : 'Primary');
     secondaryLabel.textContent = mode.value === 'comet-loop' ? 'Tail' :
@@ -349,8 +377,8 @@
     field.addEventListener('change', () => { updateFrameColors(true); draw(); });
   }
   for (const field of Object.values(fields)) {
-    field.addEventListener('input', () => { updateValues(); if (field === fields.palette_mode) updateMode(); updateFrameColors(); draw(); });
-    field.addEventListener('change', () => { updateValues(); if (field === fields.palette_mode) updateMode(); updateFrameColors(); draw(); });
+    field.addEventListener('input', () => { updateValues(); if (field === fields.palette_mode || field === fields.middle_enabled) updateMode(); updateFrameColors(); draw(); });
+    field.addEventListener('change', () => { updateValues(); if (field === fields.palette_mode || field === fields.middle_enabled) updateMode(); updateFrameColors(); draw(); });
   }
   ledIndex.addEventListener('change', draw);
   root.querySelector('[data-open-led]').addEventListener('click', () => openLedEditor(Number(ledIndex.value)));

@@ -5,6 +5,8 @@ const HOMELAB_STREAM_LED_COUNT = 303;
 const HOMELAB_STREAM_FAN_LEDS = 12;
 // Clockwise around the pair: top left to top right, then bottom right to left.
 const HOMELAB_PINWHEEL_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 20, 21, 22, 23, 12, 13, 14, 15];
+const HOMELAB_TOP_SKIP_PRIORITY = [11, 10, 0, 9, 1, 8];
+const HOMELAB_BOTTOM_SKIP_PRIORITY = [17, 18, 16, 19, 15, 20];
 const HOMELAB_STREAM_EFFECTS = [
   'pinwheel-rainbow' => 'Outer Loop',
   'synchronized-rainbow' => 'Synchronized Rainbow',
@@ -25,7 +27,20 @@ const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'color_secondary' => '0000FF',
   'tail_leds' => 6,
   'tail_variation' => 50,
+  'skipped_leds' => 3,
+  'middle_enabled' => false,
+  'middle_color' => 'FFFFFF',
 ];
+
+function homelab_pinwheel_order($skipped_leds)
+{
+  $skipped = array_flip(array_merge(
+    array_slice(HOMELAB_TOP_SKIP_PRIORITY, 0, $skipped_leds),
+    array_slice(HOMELAB_BOTTOM_SKIP_PRIORITY, 0, $skipped_leds)
+  ));
+  $perimeter = array_merge(range(0, 11), range(18, 23), range(12, 17));
+  return array_values(array_filter($perimeter, fn($index) => !isset($skipped[$index])));
+}
 
 function homelab_stream_color_defaults($effect)
 {
@@ -44,7 +59,8 @@ function homelab_stream_tuning($input)
   foreach (['period_seconds' => [2, 20], 'hue_degrees' => [0, 359],
     'brightness_pct' => [10, 100], 'bottom_phase_steps' => [-6, 6],
     'rainbow_cycles' => [1, 3], 'fade_pct' => [0, 80],
-    'tail_leds' => [3, 9], 'tail_variation' => [0, 100]] as $key => [$min, $max]) {
+    'tail_leds' => [3, 9], 'tail_variation' => [0, 100],
+    'skipped_leds' => [0, 6]] as $key => [$min, $max]) {
     if (!array_key_exists($key, $input)) {
       continue;
     }
@@ -67,7 +83,13 @@ function homelab_stream_tuning($input)
     }
     $settings['palette_mode'] = $input['palette_mode'];
   }
-  foreach (['color_primary', 'color_secondary'] as $key) {
+  if (array_key_exists('middle_enabled', $input)) {
+    if (!in_array($input['middle_enabled'], [true, false, '1', '0', 1, 0], true)) {
+      throw new InvalidArgumentException('Choose valid middle LED settings.');
+    }
+    $settings['middle_enabled'] = in_array($input['middle_enabled'], [true, '1', 1], true);
+  }
+  foreach (['color_primary', 'color_secondary', 'middle_color'] as $key) {
     if (!array_key_exists($key, $input)) {
       continue;
     }
@@ -163,6 +185,18 @@ function homelab_stream_level($color, $level)
   return homelab_stream_mix('000000', $color, max(0, min(1, $level)));
 }
 
+function homelab_stream_middle_leds($leds, $order, $tuning)
+{
+  if (!$tuning['middle_enabled']) {
+    return $leds;
+  }
+  $middle_color = homelab_stream_brightness($tuning['middle_color'], $tuning['brightness_pct']);
+  foreach (array_diff(range(0, 23), $order) as $index) {
+    $leds[$index] = $middle_color;
+  }
+  return $leds;
+}
+
 function homelab_stream_palette_color($hue, $tuning)
 {
   if ($tuning['palette_mode'] === 'two-color') {
@@ -241,9 +275,10 @@ function homelab_stream_leds($config, $elapsed = 0)
   }
   if (in_array($effect, ['brand-loop', 'comet-loop'], true)) {
     $leds = array_fill(0, 24, '000000');
-    $count = count(HOMELAB_PINWHEEL_ORDER);
+    $order = homelab_pinwheel_order($tuning['skipped_leds']);
+    $count = count($order);
     $direction = $tuning['direction'] === 'counterclockwise' ? -1 : 1;
-    foreach (HOMELAB_PINWHEEL_ORDER as $step => $index) {
+    foreach ($order as $step => $index) {
       $alignment = $index >= HOMELAB_STREAM_FAN_LEDS ? $tuning['bottom_phase_steps'] : 0;
       $position = ($step + $alignment) * $cycles -
         $direction * $elapsed * $count * $cycles / $tuning['period_seconds'];
@@ -264,7 +299,7 @@ function homelab_stream_leds($config, $elapsed = 0)
       }
       $leds[$index] = homelab_stream_brightness($color, $tuning['brightness_pct']);
     }
-    return $leds;
+    return homelab_stream_middle_leds($leds, $order, $tuning);
   }
   if (($config['effect'] ?? null) === 'synchronized-rainbow') {
     $leds = [];
@@ -279,16 +314,17 @@ function homelab_stream_leds($config, $elapsed = 0)
   }
   if (in_array($config['effect'] ?? null, ['pinwheel-rainbow', 'center-rainbow'], true)) {
     $leds = array_fill(0, 24, '000000');
-    foreach (HOMELAB_PINWHEEL_ORDER as $step => $index) {
+    $order = homelab_pinwheel_order($tuning['skipped_leds']);
+    foreach ($order as $step => $index) {
       // Spread one complete rainbow around the combined outer perimeter.
-      $hue = (int) round($step * 1536 * $cycles / count(HOMELAB_PINWHEEL_ORDER));
+      $hue = (int) round($step * 1536 * $cycles / count($order));
       $hue += $hue_offset - $phase;
       if ($index >= HOMELAB_STREAM_FAN_LEDS) {
         $hue += $bottom_offset;
       }
       $leds[$index] = homelab_stream_brightness(homelab_stream_palette_color($hue, $tuning), $tuning['brightness_pct']);
     }
-    return $leds;
+    return homelab_stream_middle_leds($leds, $order, $tuning);
   }
   if (!isset($config['top'], $config['bottom'])) {
     throw new InvalidArgumentException('Missing fan colors.');

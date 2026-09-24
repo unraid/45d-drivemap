@@ -11,6 +11,7 @@
 - Added 45D x Unraid, Comet, and Orange / Blue Pulse animated loops.
 - Extended each outer loop arc to nine LEDs per fan so the patterns reach farther around both sides.
 - Added selectable colors for streamed patterns, optional two-color rainbow palettes, and Comet tail length and variation controls.
+- Added per-fan skipped LED and separate middle color controls for Outer Loop, 45D x Unraid Loop, and Comet Loop.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed

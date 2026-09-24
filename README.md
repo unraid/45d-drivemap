@@ -41,12 +41,15 @@ color editor, or fill either fan. The orange/blue split button provides a
 starting palette. Apply the lighting to send it to the fans. The palette is saved at
 `/boot/config/plugins/45homelab/rgb-custom.json`.
 Outer Loop, 45D x Unraid Loop, and Comet Loop use nine LEDs on the outward arc
-of each fan.
+of each fan. Streamed patterns have two color pickers. Rainbow patterns can use
+their full rainbow or blend the two chosen colors. Comet also offers tail length
+and tail variation; variation changes individual tail LEDs over time while the
+head follows the selected path.
 
 The preview has controls for rotation time, direction, hue shift, brightness,
-bottom fan alignment, pattern repeats, and fade. Hue shift applies to the
-rainbow patterns. Animated streams run at 15
-frames per second. Static custom palettes run at 5 frames per second. Applying
+bottom fan alignment, pattern repeats, and fade. Hue shift applies to full
+rainbow palettes. Animated streams run at 15 frames per second. Static custom
+palettes run at 5 frames per second. Applying
 any global option stops the stream and returns control to OpenRGB. Fan speed is
 unaffected.
 The control targets only the X4 addressable header. Other OpenRGB devices are

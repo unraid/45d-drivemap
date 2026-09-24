@@ -12,6 +12,10 @@
   const presetColors = JSON.parse(root.dataset.presetColors);
   const globalControls = root.querySelector('[data-global-controls]');
   const separateControls = root.querySelector('[data-separate-controls]');
+  const patternColors = root.querySelector('[data-pattern-colors]');
+  const colorPickers = root.querySelector('[data-color-pickers]');
+  const primaryLabel = root.querySelector('[data-primary-label]');
+  const secondaryLabel = root.querySelector('[data-secondary-label]');
   const pause = root.querySelector('[data-pause]');
   const numbers = root.querySelector('[data-numbers]');
   const description = root.querySelector('[data-description]');
@@ -26,20 +30,31 @@
   const savedColors = root.elements.namedItem('led_colors');
   const fields = Object.fromEntries([
     'period_seconds', 'direction', 'hue_degrees', 'brightness_pct',
-    'bottom_phase_steps', 'rainbow_cycles', 'fade_pct'
+    'bottom_phase_steps', 'rainbow_cycles', 'fade_pct', 'palette_mode',
+    'color_primary', 'color_secondary', 'tail_leds', 'tail_variation'
   ].map((name) => [name, root.elements.namedItem(name)]));
   const defaults = {
     period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
-    brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1, fade_pct: 35
+    brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1,
+    fade_pct: 35, tail_leds: 6, tail_variation: 50
   };
+  const patternDefaults = {
+    'pinwheel-rainbow': ['#ff4500', '#0000ff', 'rainbow'],
+    'synchronized-rainbow': ['#ff4500', '#0000ff', 'rainbow'],
+    'brand-loop': ['#ff4500', '#0000ff', 'rainbow'],
+    'comet-loop': ['#ffffff', '#00afff', 'rainbow'],
+    'orange-blue-pulse': ['#ff4500', '#0000ff', 'rainbow']
+  };
+  const colorDrafts = new Map();
+  let lastMode = mode.value;
   const order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 20, 21, 22, 23, 12, 13, 14, 15];
   const rank = new Map(order.map((index, step) => [index, step]));
   const descriptions = {
     'pinwheel-rainbow': 'One rainbow moves around the outward-facing hub LEDs.',
     'synchronized-rainbow': 'Both fans show the same color at the same clock position.',
-    'brand-loop': '45D orange and Unraid blue flow around both outer hub arcs.',
-    'comet-loop': 'A blue-white comet and fading tail travel around both outer hub arcs.',
-    'orange-blue-pulse': 'Top orange and bottom blue alternate in a gentle pulse.',
+    'brand-loop': 'Two chosen colors flow around both outer hub arcs.',
+    'comet-loop': 'A bright head travels around both outer arcs with a fading, varied tail.',
+    'orange-blue-pulse': 'Top and bottom colors alternate in a gentle pulse.',
     'custom-leds': 'Select a hub LED to edit its color. Apply the full palette when ready.',
     global: 'Whole-header solid colors appear on both fans. Built-in animated effects are approximate in this preview.',
     separate: 'Top and bottom fans have independent solid colors.'
@@ -77,6 +92,19 @@
     return color.map((channel) => Math.round(channel * Math.max(0, Math.min(1, level))));
   }
 
+  function chosenColor(name) {
+    const hex = fields[name].value.slice(1);
+    return [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
+  }
+
+  function paletteColor(hue, brightness) {
+    if (fields.palette_mode.value === 'two-color') {
+      const ratio = 0.5 + 0.5 * Math.cos(2 * Math.PI * hue / 1536);
+      return scaleColor(mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), ratio), brightness / 100);
+    }
+    return colorWheel(hue, brightness);
+  }
+
   function targetColor(index) {
     if (mode.value === 'global' || mode.value === 'separate') {
       let preset = mode.value === 'global' ? globalPreset.value :
@@ -104,7 +132,7 @@
       const offset = index >= 12 ? 0.5 + alignment / 12 : 0;
       const angle = 2 * Math.PI * (direction * time + offset);
       const level = 0.25 + 0.75 * (0.5 + 0.5 * Math.cos(angle));
-      const color = index >= 12 ? [0, 0, 255] : [255, 69, 0];
+      const color = chosenColor(index >= 12 ? 'color_secondary' : 'color_primary');
       return scaleColor(scaleColor(color, level), brightness / 100);
     }
     if (mode.value === 'brand-loop' || mode.value === 'comet-loop') {
@@ -114,12 +142,17 @@
       let color;
       if (mode.value === 'brand-loop') {
         const ratio = 0.5 + 0.5 * Math.cos(2 * Math.PI * position / order.length);
-        color = mixColor([0, 0, 255], [255, 69, 0], ratio);
+        color = mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), ratio);
       } else {
         const distance = ((position % order.length) + order.length) % order.length;
-        const level = Math.max(0, 1 - distance / 4) ** 2;
+        let level = Math.max(0, 1 - distance / Number(fields.tail_leds.value));
+        if (distance >= 1 && level > 0) {
+          const tick = Math.floor(elapsed * 5);
+          const variation = ((index * 73 + tick * 151 + 37) % 101) / 100;
+          level *= 1 - Number(fields.tail_variation.value) / 100 * (0.65 * (1 - variation));
+        }
         const head = Math.max(0, 1 - distance);
-        color = scaleColor(mixColor([0, 175, 255], [255, 255, 255], head), level);
+        color = scaleColor(mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), head), level);
       }
       return scaleColor(color, brightness / 100);
     }
@@ -128,12 +161,12 @@
     const bottomOffset = index >= 12 ? Number(fields.bottom_phase_steps.value) * 128 * cycles : 0;
     if (mode.value === 'pinwheel-rainbow') {
       const step = rank.get(index);
-      return step === undefined ? [0, 0, 0] : colorWheel(
+      return step === undefined ? [0, 0, 0] : paletteColor(
         Math.round(step * 1536 * cycles / order.length) + hueOffset + bottomOffset - phase,
         brightness
       );
     }
-    return colorWheel((index % 12) * 128 * cycles + hueOffset + bottomOffset - phase, brightness);
+    return paletteColor((index % 12) * 128 * cycles + hueOffset + bottomOffset - phase, brightness);
   }
 
   function updateFrameColors(force = false) {
@@ -188,7 +221,7 @@
   function updateValues() {
     const units = {
       period_seconds: ' s', hue_degrees: ' deg', brightness_pct: '%',
-      bottom_phase_steps: ' LEDs', fade_pct: '%'
+      bottom_phase_steps: ' LEDs', fade_pct: '%', tail_leds: ' LEDs', tail_variation: '%'
     };
     for (const [name, unit] of Object.entries(units)) {
       const value = `${fields[name].value}${unit}`;
@@ -203,12 +236,32 @@
     const animated = rainbow || mode.value === 'brand-loop' || mode.value === 'comet-loop' ||
       mode.value === 'orange-blue-pulse';
     const streamed = animated || custom;
+    if (mode.value !== lastMode) {
+      colorDrafts.set(lastMode, [fields.color_primary.value, fields.color_secondary.value, fields.palette_mode.value]);
+      const selected = colorDrafts.get(mode.value) || patternDefaults[mode.value];
+      if (selected) {
+        fields.color_primary.value = selected[0];
+        fields.color_secondary.value = selected[1];
+        fields.palette_mode.value = selected[2];
+      }
+      lastMode = mode.value;
+    }
     globalControls.hidden = mode.value !== 'global';
     separateControls.hidden = mode.value !== 'separate';
     editor.hidden = !custom;
+    patternColors.hidden = !animated;
+    colorPickers.hidden = !animated || (rainbow && fields.palette_mode.value === 'rainbow');
+    for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;
+    for (const control of root.querySelectorAll('[data-comet-only]')) control.hidden = mode.value !== 'comet-loop';
+    primaryLabel.textContent = mode.value === 'comet-loop' ? 'Head' :
+      (mode.value === 'orange-blue-pulse' ? 'Top fan' : 'Primary');
+    secondaryLabel.textContent = mode.value === 'comet-loop' ? 'Tail' :
+      (mode.value === 'orange-blue-pulse' ? 'Bottom fan' : 'Secondary');
     popover.hidden = true;
     for (const label of root.querySelectorAll('[data-animated-only]')) label.hidden = !animated;
-    for (const label of root.querySelectorAll('[data-rainbow-only]')) label.hidden = !rainbow;
+    for (const label of root.querySelectorAll('[data-rainbow-only]')) {
+      label.hidden = !rainbow || fields.palette_mode.value !== 'rainbow';
+    }
     for (const label of root.querySelectorAll('[data-stream-only]')) label.hidden = !streamed;
     description.textContent = descriptions[mode.value];
     elapsed = 0;
@@ -296,8 +349,8 @@
     field.addEventListener('change', () => { updateFrameColors(true); draw(); });
   }
   for (const field of Object.values(fields)) {
-    field.addEventListener('input', () => { updateValues(); updateFrameColors(); draw(); });
-    field.addEventListener('change', () => { updateValues(); updateFrameColors(); draw(); });
+    field.addEventListener('input', () => { updateValues(); if (field === fields.palette_mode) updateMode(); updateFrameColors(); draw(); });
+    field.addEventListener('change', () => { updateValues(); if (field === fields.palette_mode) updateMode(); updateFrameColors(); draw(); });
   }
   ledIndex.addEventListener('change', draw);
   root.querySelector('[data-open-led]').addEventListener('click', () => openLedEditor(Number(ledIndex.value)));
@@ -361,9 +414,19 @@
     if (!popover.hidden && !popover.contains(event.target) && event.target !== canvas) popover.hidden = true;
   });
   reset.addEventListener('click', () => {
-    mode.value = 'synchronized-rainbow';
     for (const [name, value] of Object.entries(defaults)) {
       fields[name].value = String(value);
+    }
+    const selected = patternDefaults[mode.value];
+    if (selected) {
+      fields.color_primary.value = selected[0];
+      fields.color_secondary.value = selected[1];
+      fields.palette_mode.value = selected[2];
+    } else if (mode.value === 'global') {
+      globalPreset.value = 'white';
+    } else if (mode.value === 'separate') {
+      topPreset.value = 'white';
+      bottomPreset.value = 'blue';
     }
     elapsed = 0;
     updateValues();

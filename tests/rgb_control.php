@@ -59,19 +59,34 @@ check($brand[HOMELAB_PINWHEEL_ORDER[0]] === 'FF4500' &&
 check($brand === homelab_stream_leds(['effect' => 'brand-loop'], 6) &&
   $brand !== homelab_stream_leds(['effect' => 'brand-loop'], 1),
   'branded loop moves and repeats');
+$custom_brand = homelab_stream_leds(['effect' => 'brand-loop',
+  'color_primary' => '#00FF00', 'color_secondary' => '#800080'], 0);
+check($custom_brand[HOMELAB_PINWHEEL_ORDER[0]] === '00FF00' &&
+  $custom_brand[HOMELAB_PINWHEEL_ORDER[9]] === '800080',
+  'branded loop uses chosen colors');
 $comet = homelab_stream_leds(['effect' => 'comet-loop'], 0);
 check($comet[HOMELAB_PINWHEEL_ORDER[0]] === 'FFFFFF' &&
   $comet[HOMELAB_PINWHEEL_ORDER[1]] !== '000000' &&
-  $comet[HOMELAB_PINWHEEL_ORDER[4]] === '000000',
+  $comet[HOMELAB_PINWHEEL_ORDER[6]] === '000000',
   'comet has white head and short fading tail');
-check($comet === homelab_stream_leds(['effect' => 'comet-loop'], 6),
-  'comet completes a loop');
+check($comet === homelab_stream_leds(['effect' => 'comet-loop'], 0) &&
+  $comet[HOMELAB_PINWHEEL_ORDER[2]] !==
+    homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 0)[HOMELAB_PINWHEEL_ORDER[2]],
+  'comet tail variation is repeatable for a frame and changes tail brightness');
+check(homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 0) ===
+  homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 6),
+  'comet completes a loop when variation is disabled');
+check(homelab_stream_leds(['effect' => 'comet-loop', 'color_primary' => '#FF0000'], 0)[HOMELAB_PINWHEEL_ORDER[0]] === 'FF0000',
+  'comet uses chosen head color');
 $pulse = homelab_stream_leds(['effect' => 'orange-blue-pulse'], 0);
 check($pulse[0] === 'FF4500' && $pulse[12] === '000040' &&
   homelab_stream_leds(['effect' => 'orange-blue-pulse'], 3)[12] === '0000FF',
   'orange and blue hubs pulse in opposite phases');
 check($pulse === homelab_stream_leds(['effect' => 'orange-blue-pulse'], 6),
   'dual pulse repeats');
+check(homelab_stream_leds(['effect' => 'orange-blue-pulse',
+  'color_primary' => '#00FF00', 'color_secondary' => '#FF00FF'], 0)[0] === '00FF00',
+  'pulse uses chosen top color');
 check(homelab_stream_tuning([]) === HOMELAB_STREAM_TUNING_DEFAULTS,
   'streamed effects have stable defaults');
 check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'brightness_pct' => 50])[0] === '800000',
@@ -84,6 +99,11 @@ check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'direction' => 'c
   'direction changes the animation');
 check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'rainbow_cycles' => 2])[1] !== $aligned[1],
   'rainbow repeats change color spacing');
+$two_color = homelab_stream_leds(['effect' => 'pinwheel-rainbow', 'palette_mode' => 'two-color',
+  'color_primary' => '#FF4500', 'color_secondary' => '#0000FF'], 0);
+check($two_color[HOMELAB_PINWHEEL_ORDER[0]] === 'FF4500' &&
+  $two_color[HOMELAB_PINWHEEL_ORDER[9]] === '0000FF',
+  'rainbow patterns support chosen two-color palettes');
 $split = array_merge(array_fill(0, 12, 'FF4500'), array_fill(0, 12, '0000FF'));
 check(homelab_stream_leds(['effect' => 'custom-leds', 'leds' => $split]) === $split,
   'custom LED frame supports orange and blue fan split');
@@ -99,7 +119,9 @@ check(homelab_stream_blend_frame(array_fill(0, 24, '000000'), $split, 0) === $sp
 check(homelab_stream_blend_frame(array_fill(0, 24, '010101'), array_fill(0, 24, '000000'), 80)[0] === '000000',
   'fade lets dim LEDs turn fully off');
 foreach ([['period_seconds' => '0'], ['brightness_pct' => ['100']],
-  ['bottom_phase_steps' => '7'], ['direction' => 'sideways'], ['fade_pct' => '81']] as $bad_tuning) {
+  ['bottom_phase_steps' => '7'], ['direction' => 'sideways'], ['fade_pct' => '81'],
+  ['tail_leds' => '2'], ['tail_variation' => '101'], ['palette_mode' => 'unknown'],
+  ['color_primary' => '#12345Z'], ['color_secondary' => ['#0000FF']]] as $bad_tuning) {
   check(!homelab_rgb_set_stream_effect('synchronized-rainbow', $bad_tuning)['ok'],
     'rejects invalid tuning before opening controller');
 }
@@ -139,7 +161,8 @@ check(strpos($page, 'Rainbow Flow') !== false, 'page lists animated effects');
 check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan colors') !== false &&
   strpos($page, 'Synchronized Rainbow') !== false && strpos($page, 'bottom_phase_steps') !== false &&
   strpos($page, '45D x Unraid Loop') !== false && strpos($page, 'Comet Loop') !== false &&
-  strpos($page, 'Orange / Blue Pulse') !== false &&
+  strpos($page, 'Orange / Blue Pulse') !== false && strpos($page, 'name="color_primary"') !== false &&
+  strpos($page, 'name="color_secondary"') !== false && strpos($page, 'name="tail_variation"') !== false &&
   strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit selected LED') !== false &&
   strpos($page, 'data-led-popover') !== false &&
   strpos($page, 'name="fade_pct"') !== false,

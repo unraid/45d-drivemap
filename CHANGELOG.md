@@ -10,6 +10,7 @@
 - Added a unified lighting editor with previews for all modes, per-LED color popovers, custom palette saving, and live tuning controls for streamed effects.
 - Added 45D x Unraid, Comet, and Orange / Blue Pulse animated loops.
 - Extended each outer loop arc to nine LEDs per fan so the patterns reach farther around both sides.
+- Added selectable colors for streamed patterns, optional two-color rainbow palettes, and Comet tail length and variation controls.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed

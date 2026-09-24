@@ -20,17 +20,31 @@ const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'bottom_phase_steps' => 0,
   'rainbow_cycles' => 1,
   'fade_pct' => 35,
+  'palette_mode' => 'rainbow',
+  'color_primary' => 'FF4500',
+  'color_secondary' => '0000FF',
+  'tail_leds' => 6,
+  'tail_variation' => 50,
 ];
+
+function homelab_stream_color_defaults($effect)
+{
+  return $effect === 'comet-loop'
+    ? ['color_primary' => 'FFFFFF', 'color_secondary' => '00AFFF']
+    : ['color_primary' => 'FF4500', 'color_secondary' => '0000FF'];
+}
 
 function homelab_stream_tuning($input)
 {
   if (!is_array($input)) {
     throw new InvalidArgumentException('Invalid lighting settings.');
   }
-  $settings = HOMELAB_STREAM_TUNING_DEFAULTS;
+  $settings = array_merge(HOMELAB_STREAM_TUNING_DEFAULTS,
+    homelab_stream_color_defaults($input['effect'] ?? null));
   foreach (['period_seconds' => [2, 20], 'hue_degrees' => [0, 359],
     'brightness_pct' => [10, 100], 'bottom_phase_steps' => [-6, 6],
-    'rainbow_cycles' => [1, 3], 'fade_pct' => [0, 80]] as $key => [$min, $max]) {
+    'rainbow_cycles' => [1, 3], 'fade_pct' => [0, 80],
+    'tail_leds' => [3, 9], 'tail_variation' => [0, 100]] as $key => [$min, $max]) {
     if (!array_key_exists($key, $input)) {
       continue;
     }
@@ -46,6 +60,22 @@ function homelab_stream_tuning($input)
       throw new InvalidArgumentException('Choose valid lighting settings.');
     }
     $settings['direction'] = $input['direction'];
+  }
+  if (array_key_exists('palette_mode', $input)) {
+    if (!in_array($input['palette_mode'], ['rainbow', 'two-color'], true)) {
+      throw new InvalidArgumentException('Choose a valid color palette.');
+    }
+    $settings['palette_mode'] = $input['palette_mode'];
+  }
+  foreach (['color_primary', 'color_secondary'] as $key) {
+    if (!array_key_exists($key, $input)) {
+      continue;
+    }
+    $color = $input[$key];
+    if (!is_string($color) || !preg_match('/^#?[0-9A-Fa-f]{6}$/D', $color)) {
+      throw new InvalidArgumentException('Choose valid pattern colors.');
+    }
+    $settings[$key] = strtoupper(ltrim($color, '#'));
   }
   return $settings;
 }
@@ -133,6 +163,15 @@ function homelab_stream_level($color, $level)
   return homelab_stream_mix('000000', $color, max(0, min(1, $level)));
 }
 
+function homelab_stream_palette_color($hue, $tuning)
+{
+  if ($tuning['palette_mode'] === 'two-color') {
+    $ratio = 0.5 + 0.5 * cos(2 * M_PI * $hue / 1536);
+    return homelab_stream_mix($tuning['color_secondary'], $tuning['color_primary'], $ratio);
+  }
+  return homelab_stream_color_wheel($hue);
+}
+
 function homelab_stream_validate_led_colors($colors)
 {
   if (!is_array($colors) || array_keys($colors) !== range(0, 23)) {
@@ -195,7 +234,7 @@ function homelab_stream_leds($config, $elapsed = 0)
       $offset = $bottom ? 0.5 + $tuning['bottom_phase_steps'] / 12 : 0;
       $angle = 2 * M_PI * ($direction * $elapsed * $cycles / $tuning['period_seconds'] + $offset);
       $level = 0.25 + 0.75 * (0.5 + 0.5 * cos($angle));
-      $color = $bottom ? '0000FF' : 'FF4500';
+      $color = $bottom ? $tuning['color_secondary'] : $tuning['color_primary'];
       $leds[] = homelab_stream_brightness(homelab_stream_level($color, $level), $tuning['brightness_pct']);
     }
     return $leds;
@@ -210,12 +249,18 @@ function homelab_stream_leds($config, $elapsed = 0)
         $direction * $elapsed * $count * $cycles / $tuning['period_seconds'];
       if ($effect === 'brand-loop') {
         $ratio = 0.5 + 0.5 * cos(2 * M_PI * $position / $count);
-        $color = homelab_stream_mix('0000FF', 'FF4500', $ratio);
+        $color = homelab_stream_mix($tuning['color_secondary'], $tuning['color_primary'], $ratio);
       } else {
         $distance = fmod(fmod($position, $count) + $count, $count);
-        $level = pow(max(0, 1 - $distance / 4), 2);
+        $level = max(0, 1 - $distance / $tuning['tail_leds']);
+        if ($distance >= 1 && $level > 0) {
+          $tick = (int) floor($elapsed * 5);
+          $variation = (($index * 73 + $tick * 151 + 37) % 101) / 100;
+          $level *= 1 - $tuning['tail_variation'] / 100 * (0.65 * (1 - $variation));
+        }
         $head = max(0, 1 - $distance);
-        $color = homelab_stream_level(homelab_stream_mix('00AFFF', 'FFFFFF', $head), $level);
+        $color = homelab_stream_level(homelab_stream_mix(
+          $tuning['color_secondary'], $tuning['color_primary'], $head), $level);
       }
       $leds[$index] = homelab_stream_brightness($color, $tuning['brightness_pct']);
     }
@@ -228,7 +273,7 @@ function homelab_stream_leds($config, $elapsed = 0)
       if ($i >= HOMELAB_STREAM_FAN_LEDS) {
         $hue += $bottom_offset;
       }
-      $leds[] = homelab_stream_brightness(homelab_stream_color_wheel($hue), $tuning['brightness_pct']);
+      $leds[] = homelab_stream_brightness(homelab_stream_palette_color($hue, $tuning), $tuning['brightness_pct']);
     }
     return $leds;
   }
@@ -241,7 +286,7 @@ function homelab_stream_leds($config, $elapsed = 0)
       if ($index >= HOMELAB_STREAM_FAN_LEDS) {
         $hue += $bottom_offset;
       }
-      $leds[$index] = homelab_stream_brightness(homelab_stream_color_wheel($hue), $tuning['brightness_pct']);
+      $leds[$index] = homelab_stream_brightness(homelab_stream_palette_color($hue, $tuning), $tuning['brightness_pct']);
     }
     return $leds;
   }

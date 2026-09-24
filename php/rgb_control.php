@@ -128,7 +128,7 @@ function homelab_rgb_set_stream_effect($effect, $input = [])
     return ['ok' => false, 'error' => 'Choose a listed lighting option.'];
   }
   try {
-    $tuning = homelab_stream_tuning($input);
+    $tuning = homelab_stream_tuning(array_merge($input, ['effect' => $effect]));
   } catch (InvalidArgumentException $error) {
     return ['ok' => false, 'error' => $error->getMessage()];
   }

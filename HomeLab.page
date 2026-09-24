@@ -141,6 +141,22 @@ if (!$ready && $error === null) {
       <button type="button" data-split>Split orange / blue</button>
       <button type="button" data-clear>Clear</button>
     </div>
+    <div class="homelab-mode-controls homelab-pattern-colors" data-pattern-colors>
+      <h3>Pattern colors</h3>
+      <label for="homelab-palette" data-rainbow-palette>Palette</label>
+      <select id="homelab-palette" name="palette_mode" data-rainbow-palette>
+        <option value="rainbow" <?=$tuning['palette_mode'] === 'rainbow' ? 'selected' : ''?>>Rainbow</option>
+        <option value="two-color" <?=$tuning['palette_mode'] === 'two-color' ? 'selected' : ''?>>Two colors</option>
+      </select>
+      <div class="homelab-color-pickers" data-color-pickers>
+        <label for="homelab-primary"><span data-primary-label>Primary</span>
+          <input id="homelab-primary" type="color" name="color_primary" value="#<?=$tuning['color_primary']?>">
+        </label>
+        <label for="homelab-secondary"><span data-secondary-label>Secondary</span>
+          <input id="homelab-secondary" type="color" name="color_secondary" value="#<?=$tuning['color_secondary']?>">
+        </label>
+      </div>
+    </div>
     <div class="homelab-tuning">
       <label for="homelab-period" data-animated-only>Rotation time: <output data-value-for="period_seconds"><?=$tuning['period_seconds']?> s</output>
         <input id="homelab-period" type="range" name="period_seconds" min="2" max="20" step="1" value="<?=$tuning['period_seconds']?>">
@@ -170,6 +186,12 @@ if (!$ready && $error === null) {
       <label for="homelab-fade" data-stream-only>Fade: <output data-value-for="fade_pct"><?=$tuning['fade_pct']?>%</output>
         <input id="homelab-fade" type="range" name="fade_pct" min="0" max="80" step="5" value="<?=$tuning['fade_pct']?>">
       </label>
+      <label for="homelab-tail-length" data-comet-only>Tail length: <output data-value-for="tail_leds"><?=$tuning['tail_leds']?> LEDs</output>
+        <input id="homelab-tail-length" type="range" name="tail_leds" min="3" max="9" step="1" value="<?=$tuning['tail_leds']?>">
+      </label>
+      <label for="homelab-tail-variation" data-comet-only>Tail variation: <output data-value-for="tail_variation"><?=$tuning['tail_variation']?>%</output>
+        <input id="homelab-tail-variation" type="range" name="tail_variation" min="0" max="100" step="5" value="<?=$tuning['tail_variation']?>">
+      </label>
     </div>
     </div>
     </div>
@@ -190,6 +212,10 @@ if (!$ready && $error === null) {
   #homelab-rgb-preview .homelab-mode-controls { margin-bottom:1rem; }
   #homelab-rgb-preview .homelab-mode-controls label { display:block; margin:.75rem 0 .25rem; font-weight:600; }
   #homelab-rgb-preview .homelab-mode-controls select { width:100%; }
+  #homelab-rgb-preview .homelab-pattern-colors h3 { margin:.5rem 0; }
+  #homelab-rgb-preview .homelab-color-pickers { display:flex; gap:1rem; flex-wrap:wrap; }
+  #homelab-rgb-preview .homelab-color-pickers label { display:flex; align-items:center; gap:.5rem; }
+  #homelab-rgb-preview input[type=color] { width:3rem; height:2rem; padding:0; cursor:pointer; }
   #homelab-rgb-preview .homelab-preview-toolbar { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin:.25rem 0 1rem; }
   #homelab-rgb-preview .homelab-preview-toolbar > label:first-child { font-weight:600; }
   #homelab-rgb-preview .homelab-preview-stage { position:relative; width:min(100%,420px); margin:0 auto; }
@@ -212,4 +238,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=10"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=11"></script>

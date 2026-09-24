@@ -9,6 +9,7 @@
 - Added separate top and bottom fan colors, Outer Loop and Synchronized Rainbow effects, and a hub LED preview for the X4's 24-LED chain.
 - Added a unified lighting editor with previews for all modes, per-LED color popovers, custom palette saving, and live tuning controls for streamed effects.
 - Added 45D x Unraid, Comet, and Orange / Blue Pulse animated loops.
+- Extended each outer loop arc to nine LEDs per fan so the patterns reach farther around both sides.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed

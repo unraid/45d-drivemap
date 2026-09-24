@@ -35,10 +35,14 @@ $rainbow = homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 0);
 check($rainbow[0] === '000000' && $rainbow[11] === '000000' &&
   $rainbow[12] !== '000000' && $rainbow[23] !== '000000',
   'pinwheel blanks inward hub LEDs and lights outward arcs');
-check(count(array_filter($rainbow, fn($color) => $color !== '000000')) === 14,
-  'pinwheel lights seven outward LEDs per fan');
+check(count(array_filter($rainbow, fn($color) => $color !== '000000')) === 18 &&
+  $rainbow[1] !== '000000' && $rainbow[9] !== '000000' &&
+  $rainbow[19] !== '000000' && $rainbow[15] !== '000000' &&
+  $rainbow[0] === '000000' && $rainbow[10] === '000000' && $rainbow[11] === '000000' &&
+  $rainbow[16] === '000000' && $rainbow[17] === '000000' && $rainbow[18] === '000000',
+  'pinwheel lights nine outer LEDs per fan, including both added arc ends');
 check($rainbow[8] !== $rainbow[20] && $rainbow[14] !== $rainbow[2] &&
-  count(array_unique(array_map(fn($index) => $rainbow[$index], HOMELAB_PINWHEEL_ORDER))) === 14,
+  count(array_unique(array_map(fn($index) => $rainbow[$index], HOMELAB_PINWHEEL_ORDER))) === 18,
   'pinwheel spreads all rainbow hues across one perimeter');
 check($rainbow === homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 6),
   'pinwheel repeats after one full rotation');
@@ -49,8 +53,8 @@ check($aligned === homelab_stream_leds(['effect' => 'synchronized-rainbow'], 6),
   'synchronized rainbow repeats after one full rotation');
 $brand = homelab_stream_leds(['effect' => 'brand-loop'], 0);
 check($brand[HOMELAB_PINWHEEL_ORDER[0]] === 'FF4500' &&
-  $brand[HOMELAB_PINWHEEL_ORDER[7]] === '0000FF' &&
-  count(array_filter($brand, fn($color) => $color !== '000000')) === 14,
+  $brand[HOMELAB_PINWHEEL_ORDER[9]] === '0000FF' &&
+  count(array_filter($brand, fn($color) => $color !== '000000')) === 18,
   '45D x Unraid loop places orange and blue on the outer arc');
 check($brand === homelab_stream_leds(['effect' => 'brand-loop'], 6) &&
   $brand !== homelab_stream_leds(['effect' => 'brand-loop'], 1),

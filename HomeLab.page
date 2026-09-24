@@ -212,4 +212,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=9"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=10"></script>

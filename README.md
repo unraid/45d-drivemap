@@ -40,6 +40,8 @@ custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open
 color editor, or fill either fan. The orange/blue split button provides a
 starting palette. Apply the lighting to send it to the fans. The palette is saved at
 `/boot/config/plugins/45homelab/rgb-custom.json`.
+Outer Loop, 45D x Unraid Loop, and Comet Loop use nine LEDs on the outward arc
+of each fan.
 
 The preview has controls for rotation time, direction, hue shift, brightness,
 bottom fan alignment, pattern repeats, and fade. Hue shift applies to the

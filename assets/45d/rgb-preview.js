@@ -32,7 +32,7 @@
     period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
     brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1, fade_pct: 35
   };
-  const order = [2, 3, 4, 5, 6, 7, 8, 20, 21, 22, 23, 12, 13, 14];
+  const order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 20, 21, 22, 23, 12, 13, 14, 15];
   const rank = new Map(order.map((index, step) => [index, step]));
   const descriptions = {
     'pinwheel-rainbow': 'One rainbow moves around the outward-facing hub LEDs.',

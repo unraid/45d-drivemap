@@ -4,6 +4,7 @@
 
 ### Added
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
+- Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed

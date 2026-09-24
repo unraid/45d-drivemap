@@ -25,6 +25,8 @@ check(!homelab_rgb_set(['red'], $binary)['ok'], 'rejects array input');
 check(file_get_contents($log) === $before, 'rejects unknown preset before command execution');
 check(homelab_rgb_set('blue', $binary)['ok'], 'applies listed preset');
 check(strpos(file_get_contents($log), "--device\nASRock B860I WiFi\n--zone\n0\n--mode\nStatic\n--color\n0000FF\n") !== false, 'targets X4 zone with solid blue');
+check(homelab_rgb_set('warm-white', $binary)['ok'], 'applies warm white preset');
+check(strpos(file_get_contents($log), "--mode\nStatic\n--color\nFFD8A8\n") !== false, 'sends warm white RGB value');
 check(homelab_rgb_set('off', $binary)['ok'], 'turns lighting off');
 check(strpos(file_get_contents($log), "--mode\nOff\n") !== false, 'uses Off mode');
 file_put_contents($fixture, "0: Other controller\n  Modes: [Off] Static\n  Zones: 'Addressable Header 1'\n");

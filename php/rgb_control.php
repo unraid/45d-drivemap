@@ -7,11 +7,16 @@ const HOMELAB_RGB_ZONE = 'Addressable Header 1';
 const HOMELAB_RGB_PRESETS = [
   'off' => ['label' => 'Off', 'color' => null],
   'white' => ['label' => 'White', 'color' => 'FFFFFF'],
+  'warm-white' => ['label' => 'Warm White', 'color' => 'FFD8A8'],
   'red' => ['label' => 'Red', 'color' => 'FF0000'],
   'orange' => ['label' => 'Orange', 'color' => 'FF7800'],
+  'yellow' => ['label' => 'Yellow', 'color' => 'FFFF00'],
   'green' => ['label' => 'Green', 'color' => '00FF00'],
+  'teal' => ['label' => 'Teal', 'color' => '00BFA5'],
+  'cyan' => ['label' => 'Cyan', 'color' => '00FFFF'],
   'blue' => ['label' => 'Blue', 'color' => '0000FF'],
   'purple' => ['label' => 'Purple', 'color' => '8000FF'],
+  'pink' => ['label' => 'Pink', 'color' => 'FF69B4'],
 ];
 
 function homelab_openrgb_binary()

@@ -1,12 +1,12 @@
-# 45D Drive Map (Unraid Plugin)
+# 45HomeLab (Unraid Plugin)
 
-Embed the 45Drives disk map UI directly in Unraid's **Main** page and generate
-map/server metadata on the Unraid host.
+Embed the 45Drives disk map UI in Unraid's **Main** page. On the 45HomeLab X4,
+set a solid color for fan lights connected to the ASRock addressable RGB header.
 
 ## Stable Plugin Links
 
 - Install / update URL (stable latest):
-  - `https://github.com/unraid/45d-drivemap/releases/latest/download/45d-drivemap.plg`
+  - `https://github.com/unraid/45d-drivemap/releases/latest/download/45homelab.plg`
 - Release history (version-specific assets):
   - `https://github.com/unraid/45d-drivemap/releases`
 
@@ -20,22 +20,42 @@ map/server metadata on the Unraid host.
   - runtime logs
   in `/var/local/45d/`.
 - Supports SMART-derived fields and ZFS info endpoints used by the UI.
+- Adds **Settings > System Settings > 45HomeLab** for X4 fan lighting presets.
+  Fan speed is not changed.
+
+## X4 Fan Lighting
+
+Install Simon's [OpenRGB Unraid plugin](https://github.com/unraid/unraid-openrgb/releases/latest/download/openrgb.plg)
+first. 45HomeLab uses its `/usr/bin/openrgb` command. It does not bundle another
+OpenRGB runtime. The X4 controller must appear as `ASRock B860I WiFi` with
+`Addressable Header 1` in `openrgb --list-detailed`.
+
+Select Off, White, Red, Orange, Green, Blue, or Purple and click **Apply color**.
+The control targets only the X4 addressable header. Other OpenRGB devices are
+left alone. Applying a color changes the controller now; persistence across a
+power cycle has not been verified.
 
 ## Getting Started
 
 1. In Unraid, open **Plugins**.
 2. Choose **Install Plugin**.
 3. Paste the stable URL:
-   - `https://github.com/unraid/45d-drivemap/releases/latest/download/45d-drivemap.plg`
+   - `https://github.com/unraid/45d-drivemap/releases/latest/download/45homelab.plg`
 4. Install, then open **Main** and scroll to **Drive Map** (top section).
 5. Click **Refresh** in the Drive Map toolbar to force regeneration if needed.
+
+Existing `45d-drivemap` installs need a manual plugin replacement because the
+Unraid plugin ID changed. Remove the old plugin, then install the 45HomeLab URL
+above. The new installer copies `product_name` and
+`hba_phy_order_overrides.json` from the old plugin config directory when those
+files still exist.
 
 ## Configuration Overrides
 
 - To override model inference, place a product name override in
-  `/boot/config/plugins/45d-drivemap/product_name`.
+  `/boot/config/plugins/45homelab/product_name`.
 - To override HBA port/phy order for non-standard motherboard/HBA builds, create
-  `/boot/config/plugins/45d-drivemap/hba_phy_order_overrides.json`:
+  `/boot/config/plugins/45homelab/hba_phy_order_overrides.json`:
 
 ```json
 {
@@ -53,7 +73,7 @@ aliases after changing this file.
 To collect the current HBA/SATA path/device evidence for building an override, run:
 
 ```bash
-/usr/local/emhttp/plugins/45d-drivemap/scripts/45d-list-hba-paths
+/usr/local/emhttp/plugins/45homelab/scripts/45d-list-hba-paths
 ```
 
 It prints `hba_path`, resolved `/dev/sdX`, serial, model, size, PCI bus, and
@@ -64,9 +84,9 @@ support ticket.
 
 Removing the plugin cleans up:
 
-- `/usr/local/emhttp/plugins/45d-drivemap`
+- `/usr/local/emhttp/plugins/45homelab`
 - `/var/local/45d`
-- cached package files under `/boot/config/plugins/45d-drivemap`
+- cached package files under `/boot/config/plugins/45homelab`
 
 ## Development
 

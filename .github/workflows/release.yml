@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PACKAGE="packages/45d-drivemap-${{ steps.version.outputs.version }}.txz"
+          PACKAGE="packages/45homelab-${{ steps.version.outputs.version }}.txz"
           SHA256="$(sha256sum "${PACKAGE}" | awk '{print $1}')"
           scripts/render-plg "${{ steps.version.outputs.version }}" "${SHA256}" "${{ github.repository }}"
 
@@ -70,5 +70,5 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           make_latest: true
           files: |
-            45d-drivemap.plg
-            packages/45d-drivemap-${{ steps.version.outputs.version }}.txz
+            45homelab.plg
+            packages/45homelab-${{ steps.version.outputs.version }}.txz

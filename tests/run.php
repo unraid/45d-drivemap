@@ -62,7 +62,7 @@ function create_context($name = '')
 {
   global $cleanup_dirs;
   $suffix = $name !== '' ? '-' . $name : '';
-  $tmp = sys_get_temp_dir() . '/45d-drivemap-tests-' . uniqid() . $suffix;
+  $tmp = sys_get_temp_dir() . '/45homelab-tests-' . uniqid() . $suffix;
   $ctx = [
     'tmp' => $tmp,
     'dev_dir' => $tmp . '/dev',

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 VERSION="${1:-0.1.1}"
-PACKAGE_NAME="45d-drivemap-assets-${VERSION}.txz"
+PACKAGE_NAME="45homelab-assets-${VERSION}.txz"
 PACKAGE_DIR="${ROOT_DIR}/packages"
 PACKAGE_PATH="${PACKAGE_DIR}/${PACKAGE_NAME}"
 
@@ -13,7 +13,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-TARGET_DIR="${STAGE_DIR}/usr/local/emhttp/plugins/45d-drivemap/assets/45d"
+TARGET_DIR="${STAGE_DIR}/usr/local/emhttp/plugins/45homelab/assets/45d"
 mkdir -p "${TARGET_DIR}"
 cp -a "${ROOT_DIR}/assets/45d/45drives-disks" "${TARGET_DIR}/"
 

@@ -1,16 +1,16 @@
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
-  <!ENTITY name "45d-drivemap">
+  <!ENTITY name "45homelab">
   <!ENTITY author "45Drives + Unraid">
   <!ENTITY version "__VERSION__">
   <!ENTITY plugin_url "__PLUGIN_URL__">
-  <!ENTITY package_txz_name "45d-drivemap-&version;.txz">
+  <!ENTITY package_txz_name "45homelab-&version;.txz">
   <!ENTITY package_txz_url "__PACKAGE_URL_BASE__/&package_txz_name;">
   <!ENTITY package_txz_sha256 "__PACKAGE_SHA256__">
   <!ENTITY package_source "/boot/config/plugins/&name;/&package_txz_name;">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&plugin_url;"
-  launch="Drive Map" min="6.12.0" icon="th">
+  launch="45HomeLab" min="6.12.0" icon="lightbulb-o">
 
   <CHANGES>
 __CHANGES__
@@ -26,12 +26,20 @@ __CHANGES__
 <![CDATA[
 set -e
 
-MAINNAME="45d-drivemap"
+MAINNAME="45homelab"
 PLUGIN_DIR="/usr/local/emhttp/plugins/${MAINNAME}"
-PACKAGE_FILE="/boot/config/plugins/${MAINNAME}/45d-drivemap-__VERSION__.txz"
+PACKAGE_FILE="/boot/config/plugins/${MAINNAME}/45homelab-__VERSION__.txz"
 
 mkdir -p "/boot/config/plugins/${MAINNAME}"
 mkdir -p /var/local/45d
+
+# Preserve existing drive-map overrides when upgrading from the old plugin.
+for CONFIG_FILE in product_name hba_phy_order_overrides.json; do
+  if [ -f "/boot/config/plugins/45d-drivemap/${CONFIG_FILE}" ] &&
+     [ ! -e "/boot/config/plugins/${MAINNAME}/${CONFIG_FILE}" ]; then
+    cp -p "/boot/config/plugins/45d-drivemap/${CONFIG_FILE}" "/boot/config/plugins/${MAINNAME}/${CONFIG_FILE}"
+  fi
+done
 
 if [ -f "${PACKAGE_FILE}" ]; then
   rm -rf "${PLUGIN_DIR}"
@@ -49,7 +57,7 @@ chmod +x "${PLUGIN_DIR}/scripts/45d-generate-server-info" || true
 <![CDATA[
 set -e
 
-MAINNAME="45d-drivemap"
+MAINNAME="45homelab"
 PLUGIN_DIR="/usr/local/emhttp/plugins/${MAINNAME}"
 STATE_DIR="/var/local/45d"
 BOOT_DIR="/boot/config/plugins/${MAINNAME}"
@@ -58,7 +66,7 @@ rm -rf "${PLUGIN_DIR}"
 rm -rf "${STATE_DIR}"
 
 if [ -d "${BOOT_DIR}" ]; then
-  rm -f "${BOOT_DIR}"/45d-drivemap-*.txz
+  rm -f "${BOOT_DIR}"/45homelab-*.txz
   rmdir "${BOOT_DIR}" 2>/dev/null || true
 fi
 ]]>

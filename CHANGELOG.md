@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+### Added
+- Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
+
+### Changed
+- Renamed the Unraid plugin to 45HomeLab and moved its settings under System Settings.
+- Preserved drive-map overrides from existing 45d-drivemap installations during installation.
+
 ## 0.4.0
 
 ### Added

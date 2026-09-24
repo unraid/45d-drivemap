@@ -8,7 +8,7 @@ Everything in `dev/` is development-only and is not included in the plugin
 Use `dev/live-deploy.sh` to copy local files directly into the live plugin
 directory on a remote Unraid host:
 
-- default target: `/usr/local/emhttp/plugins/45d-drivemap`
+- default target: `/usr/local/emhttp/plugins/45homelab`
 - default paths: `DriveMap.page`, `plugin.cfg`, `php/`, `scripts/`
 - optional extras: `assets/`, dev pages, or additional repo-relative paths
 
@@ -69,10 +69,10 @@ To simulate a 45d layout directly on a non-45d Unraid host via the web UI:
 1. Copy the dev-only pages:
 
 ```bash
-scp DriveMapDevTools.page DriveMapDevToolsSimulator.page root@192.168.1.201:/usr/local/emhttp/plugins/45d-drivemap/
+scp DriveMapDevTools.page DriveMapDevToolsSimulator.page root@192.168.1.201:/usr/local/emhttp/plugins/45homelab/
 ```
 
-2. Open **Tools -> 45D Drive Map Dev -> Simulator** in Unraid.
+2. Open **Tools -> 45HomeLab Drive Map Dev -> Simulator** in Unraid.
 3. Pick a profile (for example `H16 Q30`).
 4. Choose an occupancy source:
    - `Use detected by-path devices only` (real occupancy cap)

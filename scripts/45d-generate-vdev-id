@@ -6,7 +6,7 @@
 $server_info_path = getenv('DRIVEMAP_DMAP_SERVER_INFO') ?: '/etc/45drives/server_info/server_info.json';
 $output_path = getenv('DRIVEMAP_DMAP_OUTPUT') ?: '/etc/vdev_id.conf';
 $tools_version_path = getenv('DRIVEMAP_TOOLS_VERSION_FILE') ?: '/etc/45drives/server_info/tools_version';
-$plugin_config_dir = rtrim(getenv('DRIVEMAP_PLUGIN_CONFIG_DIR') ?: '/boot/config/plugins/45d-drivemap', "/\\");
+$plugin_config_dir = rtrim(getenv('DRIVEMAP_PLUGIN_CONFIG_DIR') ?: '/boot/config/plugins/45homelab', "/\\");
 $hba_phy_order_overrides_path = getenv('DRIVEMAP_DMAP_HBA_PHY_ORDER_OVERRIDES_FILE') ?: ($plugin_config_dir . '/hba_phy_order_overrides.json');
 
 function fail($message)

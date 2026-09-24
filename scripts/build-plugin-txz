@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 VERSION="${1:-$(awk -F= '/^version=/{print $2}' "${ROOT_DIR}/plugin.cfg")}"
-PLUGIN_NAME="45d-drivemap"
+PLUGIN_NAME="45homelab"
 PACKAGE_NAME="${PLUGIN_NAME}-${VERSION}.txz"
 PACKAGE_DIR="${ROOT_DIR}/packages"
 PACKAGE_PATH="${PACKAGE_DIR}/${PACKAGE_NAME}"
@@ -23,6 +23,7 @@ mkdir -p "${TARGET_DIR}"
 
 cp -a \
   "${ROOT_DIR}/DriveMap.page" \
+  "${ROOT_DIR}/HomeLab.page" \
   "${ROOT_DIR}/plugin.cfg" \
   "${ROOT_DIR}/assets" \
   "${ROOT_DIR}/php" \
@@ -60,10 +61,10 @@ fi
 TAR_ARGS=()
 if tar --version 2>/dev/null | head -n 1 | grep -qi "gnu tar"; then
   TAR_BIN="tar"
-  TAR_ARGS+=(--owner=0 --group=0 --numeric-owner --no-acls --no-xattrs --sort=name --mtime=@946684800)
+  TAR_ARGS+=(--owner=0 --group=0 --numeric-owner --no-acls --no-xattrs --sort=name --mtime=@946684800 --no-recursion)
 else
   TAR_BIN="bsdtar"
-  TAR_ARGS+=(--uid 0 --gid 0 --uname root --gname root --no-acls --no-fflags --no-mac-metadata --no-xattrs)
+  TAR_ARGS+=(--uid 0 --gid 0 --uname root --gname root --no-acls --no-fflags --no-mac-metadata --no-xattrs -n)
 fi
 
 FILE_LIST=$(mktemp)

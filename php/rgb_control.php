@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/rgb_stream.php';
 
 // The X4 fan lights are wired to the ASRock board's addressable RGB header.
 // Keep this intentionally specific: OpenRGB can also control unrelated devices.
@@ -87,6 +88,10 @@ function homelab_rgb_set($preset, $binary = null)
   if (!is_string($preset) || homelab_rgb_label($preset) === null) {
     return ['ok' => false, 'error' => 'Choose a listed lighting option.'];
   }
+  $stopped = homelab_stream_stop();
+  if (!$stopped['ok']) {
+    return $stopped;
+  }
   $detected = homelab_rgb_detect($binary);
   if (!$detected['ok']) {
     return $detected;
@@ -104,4 +109,39 @@ function homelab_rgb_set($preset, $binary = null)
     }
   }
   return homelab_openrgb_run($args, $binary);
+}
+
+function homelab_rgb_set_separate($top, $bottom)
+{
+  if (!is_string($top) || !is_string($bottom) ||
+      !isset(HOMELAB_RGB_PRESETS[$top], HOMELAB_RGB_PRESETS[$bottom])) {
+    return ['ok' => false, 'error' => 'Choose listed colors for both fans.'];
+  }
+  $top_color = HOMELAB_RGB_PRESETS[$top]['color'] ?: '000000';
+  $bottom_color = HOMELAB_RGB_PRESETS[$bottom]['color'] ?: '000000';
+  return homelab_stream_start(['top' => $top_color, 'bottom' => $bottom_color]);
+}
+
+function homelab_rgb_set_center_rainbow()
+{
+  return homelab_stream_start(['effect' => 'center-rainbow']);
+}
+
+function homelab_rgb_stream_selection()
+{
+  $config = json_decode((string) @file_get_contents(homelab_stream_paths()['config']), true);
+  if (!is_array($config)) {
+    return ['top' => 'white', 'bottom' => 'blue'];
+  }
+  $colors = [];
+  foreach (['top', 'bottom'] as $fan) {
+    $colors[$fan] = $fan === 'top' ? 'white' : 'blue';
+    foreach (HOMELAB_RGB_PRESETS as $name => $preset) {
+      if (($preset['color'] ?: '000000') === ($config[$fan] ?? null)) {
+        $colors[$fan] = $name;
+        break;
+      }
+    }
+  }
+  return $colors;
 }

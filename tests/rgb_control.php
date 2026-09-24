@@ -19,6 +19,22 @@ function check($value, $message)
 }
 
 check(homelab_rgb_detect($binary)['ok'], 'detects X4 addressable header');
+$leds = homelab_stream_leds(['top' => 'FFFFFF', 'bottom' => '0000FF']);
+check(count($leds) === 24 && count(array_unique(array_slice($leds, 0, 12))) === 1 &&
+  $leds[0] === 'FFFFFF' && $leds[11] === 'FFFFFF' && $leds[12] === '0000FF' && $leds[23] === '0000FF',
+  'first 12 LEDs are top fan and next 12 are bottom fan');
+$packets = homelab_stream_packets($leds);
+check(count($packets) === 16 && array_reduce($packets, fn($ok, $packet) => $ok && strlen($packet) === 65, true),
+  'sends sixteen 65-byte HID reports');
+check(substr($packets[0], 0, 9) === "\x00\x10\x00\xff\xe3\x00\x00\x2f\x01" &&
+  substr($packets[0], 9, 36) === str_repeat("\xff\xff\xff", 12) &&
+  substr($packets[0], 45, 18) === str_repeat("\x00\x00\xff", 6) &&
+  substr($packets[1], 5, 18) === str_repeat("\x00\x00\xff", 6),
+  'encodes both fans in SignalRGB-style stream packets');
+$rainbow = homelab_stream_leds(['effect' => 'center-rainbow'], 0);
+check($rainbow[11] === $rainbow[12] && $rainbow[10] === $rainbow[13] && $rainbow[0] === $rainbow[23],
+  'center rainbow mirrors outward from junction');
+check(!homelab_rgb_set_separate('bad', 'blue')['ok'], 'rejects unknown separate preset');
 file_put_contents($fixture, "0: ASRock B860I WiFi\n  Modes: [Off] Static Wave Rainbow Direct\n  Zones: 'Addressable Header 1' 'Other Header'\n");
 check(!homelab_rgb_detect($binary)['ok'], 'rejects controller with other zones');
 file_put_contents($fixture, "0: ASRock B860I WiFi\n  Modes: [Off] Static Wave Rainbow Direct\n  Zones: 'Addressable Header 1'\n");
@@ -45,6 +61,8 @@ include dirname(__DIR__) . '/HomeLab.page';
 $page = ob_get_clean();
 check(strpos($page, 'Orange applied to fan lights.') !== false, 'page accepts validated POST without token field');
 check(strpos($page, 'Rainbow Flow') !== false, 'page lists animated effects');
+check(strpos($page, 'Apply separate colors') !== false && strpos($page, 'Center-out Rainbow') !== false,
+  'page offers separate colors and center flow');
 unset($_SERVER['REQUEST_METHOD'], $_POST, $var);
 putenv('HOMELAB_OPENRGB_BIN');
 file_put_contents($fixture, "0: Other controller\n  Modes: [Off] Static\n  Zones: 'Addressable Header 1'\n");

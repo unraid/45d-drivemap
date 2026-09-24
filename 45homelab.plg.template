@@ -42,6 +42,12 @@ for CONFIG_FILE in product_name hba_phy_order_overrides.json; do
 done
 
 if [ -f "${PACKAGE_FILE}" ]; then
+  if [ -f /var/local/45d/rgb-stream.pid ]; then
+    RGB_PID=$(cat /var/local/45d/rgb-stream.pid)
+    if [ -r "/proc/${RGB_PID}/cmdline" ] && tr '\000' ' ' < "/proc/${RGB_PID}/cmdline" | grep -q '45d-rgb-stream.php'; then
+      kill "${RGB_PID}" || true
+    fi
+  fi
   rm -rf "${PLUGIN_DIR}"
   tar --no-overwrite-dir -xf "${PACKAGE_FILE}" -C /
 fi
@@ -61,6 +67,13 @@ MAINNAME="45homelab"
 PLUGIN_DIR="/usr/local/emhttp/plugins/${MAINNAME}"
 STATE_DIR="/var/local/45d"
 BOOT_DIR="/boot/config/plugins/${MAINNAME}"
+
+if [ -f "${STATE_DIR}/rgb-stream.pid" ]; then
+  RGB_PID=$(cat "${STATE_DIR}/rgb-stream.pid")
+  if [ -r "/proc/${RGB_PID}/cmdline" ] && tr '\000' ' ' < "/proc/${RGB_PID}/cmdline" | grep -q '45d-rgb-stream.php'; then
+    kill "${RGB_PID}" || true
+  fi
+fi
 
 rm -rf "${PLUGIN_DIR}"
 rm -rf "${STATE_DIR}"

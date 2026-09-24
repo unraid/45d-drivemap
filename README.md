@@ -33,14 +33,20 @@ OpenRGB runtime. The X4 controller must appear as `ASRock B860I WiFi` with
 Select Off, White, Warm White, Red, Orange, Yellow, Green, Teal, Cyan, Blue,
 Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
 Cycle. Click **Apply lighting**.
+The same settings page also offers independent solid colors for the top and
+bottom fans and a Center-out Rainbow effect. These use a continuously running
+RGB stream; applying any global option stops the stream and returns control to
+OpenRGB. Fan speed is unaffected.
 The control targets only the X4 addressable header. Other OpenRGB devices are
 left alone. Applying a color changes the controller now; persistence across a
 power cycle has not been verified.
-The two daisy-chained ARCTIC fans on the tested X4 form a 24-LED serial chain.
-OpenRGB initially reported 80 LEDs for the header. After resizing it to 24,
-Direct-mode frames produced inconsistent partial changes, and repeated frames
-sometimes made no visible change. Built-in effects can appear mirrored. Separate
-fan settings and a center-out flow need reliable per-LED frame updates.
+The two daisy-chained ARCTIC fans on the tested X4 form a 24-LED serial chain:
+LEDs 1–12 are the top fan and 13–24 are the bottom fan. The independent controls
+use the ASRock USB controller's HID stream. A fixed white/blue test and an
+alternating white/blue test confirmed this mapping on the X4. The stream runs
+while independent colors or Center-out Rainbow are selected and ends when a
+global lighting option is applied or the plugin is removed. Persistence across
+a reboot has not been verified.
 
 ## Getting Started
 

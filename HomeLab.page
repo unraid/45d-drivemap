@@ -15,15 +15,31 @@ $message = null;
 $error = null;
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   // Unraid validates and removes csrf_token before rendering this page.
-  $preset = $_POST['color'] ?? '';
-  $result = homelab_rgb_set($preset);
+  $action = $_POST['lighting_action'] ?? 'global';
+  if ($action === 'separate') {
+    $top = $_POST['top_color'] ?? '';
+    $bottom = $_POST['bottom_color'] ?? '';
+    $result = homelab_rgb_set_separate($top, $bottom);
+    $label = 'Separate fan colors';
+  } elseif ($action === 'center-rainbow') {
+    $result = homelab_rgb_set_center_rainbow();
+    $label = 'Center-out Rainbow';
+  } elseif ($action === 'global') {
+    $preset = $_POST['color'] ?? '';
+    $result = homelab_rgb_set($preset);
+    $label = homelab_rgb_label($preset);
+  } else {
+    $result = ['ok' => false, 'error' => 'Choose a listed lighting option.'];
+  }
   if ($result['ok']) {
-    $message = homelab_rgb_label($preset) . ' applied to fan lights.';
+    $message = $label . ' applied to fan lights.';
   } else {
     $error = $result['error'];
   }
 }
-$detected = homelab_rgb_detect();
+$streaming = homelab_stream_pid() !== null;
+$selection = homelab_rgb_stream_selection();
+$detected = $streaming ? ['ok' => true, 'error' => null] : homelab_rgb_detect();
 $ready = $detected['ok'];
 if (!$ready && $error === null) {
   $error = $detected['error'];
@@ -32,7 +48,7 @@ if (!$ready && $error === null) {
 <div style="max-width: 48rem;">
   <h2>Fan lighting</h2>
   <p>Set a solid color or animated effect for the X4 fans connected to the ASRock addressable header.</p>
-  <p>Built-in effects may look mirrored across the two daisy-chained fans. Separate fan settings are unavailable while per-LED updates on this controller remain unreliable.</p>
+  <p>The two daisy-chained fans each have 12 LEDs. Separate colors and Center-out Rainbow use a continuous stream to the X4 controller.</p>
   <?php if ($message): ?>
     <p role="status"><?=htmlspecialchars($message, ENT_QUOTES, 'UTF-8')?></p>
   <?php endif; ?>
@@ -41,6 +57,7 @@ if (!$ready && $error === null) {
   <?php endif; ?>
   <form method="post">
     <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
+    <input type="hidden" name="lighting_action" value="global">
     <label for="homelab-fan-color">Lighting</label>
     <select id="homelab-fan-color" name="color" <?=$ready ? '' : 'disabled'?>>
       <option value="" selected disabled>Choose lighting</option>
@@ -56,5 +73,28 @@ if (!$ready && $error === null) {
       </optgroup>
     </select>
     <input type="submit" value="Apply lighting" <?=$ready ? '' : 'disabled'?>>
+  </form>
+  <h3>Separate fan colors</h3>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
+    <input type="hidden" name="lighting_action" value="separate">
+    <label for="homelab-top-color">Top fan</label>
+    <select id="homelab-top-color" name="top_color" <?=$ready ? '' : 'disabled'?>>
+      <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
+        <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === $selection['top'] ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
+      <?php endforeach; ?>
+    </select>
+    <label for="homelab-bottom-color">Bottom fan</label>
+    <select id="homelab-bottom-color" name="bottom_color" <?=$ready ? '' : 'disabled'?>>
+      <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
+        <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === $selection['bottom'] ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
+      <?php endforeach; ?>
+    </select>
+    <input type="submit" value="Apply separate colors" <?=$ready ? '' : 'disabled'?>>
+  </form>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
+    <input type="hidden" name="lighting_action" value="center-rainbow">
+    <input type="submit" value="Center-out Rainbow" <?=$ready ? '' : 'disabled'?>>
   </form>
 </div>

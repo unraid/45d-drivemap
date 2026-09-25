@@ -42,14 +42,14 @@
   const ledIndex = root.querySelector('[data-led-index]');
   const savedColors = root.elements.namedItem('led_colors');
   const fields = Object.fromEntries([
-    'period_seconds', 'direction', 'hue_degrees', 'brightness_pct',
+    'period_seconds', 'eye_angle_degrees', 'direction', 'hue_degrees', 'brightness_pct',
     'bottom_phase_steps', 'rainbow_cycles', 'fade_pct', 'palette_mode',
     'color_primary', 'color_secondary', 'tail_leds', 'tail_variation', 'skipped_leds',
     'virtual_gap_steps',
     'middle_enabled', 'middle_color'
   ].map((name) => [name, root.elements.namedItem(name)]));
   const defaults = {
-    period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
+    period_seconds: 6, eye_angle_degrees: 0, direction: 'clockwise', hue_degrees: 0,
     brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1,
     fade_pct: 35, tail_leds: 8, tail_variation: 50, skipped_leds: 4, virtual_gap_steps: 1,
     middle_enabled: '0', middle_color: '#ff4500'
@@ -190,7 +190,8 @@
     }
     if (mode.value === 'halloween-eyes') {
       const local = index % 12;
-      const edge = Math.abs(Math.cos(ledAngle(local) + 7.5 * Math.PI / 180));
+      const eyeAngle = Number(fields.eye_angle_degrees.value) * (index < 12 ? 1 : -1);
+      const edge = Math.abs(Math.cos(ledAngle(local) + (7.5 + eyeAngle) * Math.PI / 180));
       const closure = eyeClosure();
       const mask = Math.max(0, Math.min(1, (0.02 + 1.35 * (1 - closure) - edge) / 0.3));
       const visibility = mask * mask * (3 - 2 * mask);
@@ -301,7 +302,7 @@
 
   function updateValues() {
     const units = {
-      period_seconds: ' s', hue_degrees: ' deg', brightness_pct: '%',
+      period_seconds: ' s', eye_angle_degrees: '°', hue_degrees: ' deg', brightness_pct: '%',
       bottom_phase_steps: ' LEDs', fade_pct: '%', tail_leds: ' LEDs',
       tail_variation: '%', skipped_leds: ' LEDs per fan', virtual_gap_steps: ' per crossing'
     };
@@ -345,6 +346,7 @@
     stage.classList.toggle('homelab-sideways', halloween);
     for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;
     for (const control of root.querySelectorAll('[data-comet-only]')) control.hidden = mode.value !== 'comet-loop';
+    for (const control of root.querySelectorAll('[data-eye-only]')) control.hidden = !halloween;
     for (const control of root.querySelectorAll('[data-loop-only]')) {
       control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value) ||
         (control.hasAttribute('data-middle-setting') && Number(fields.skipped_leds.value) === 0);

@@ -19,6 +19,7 @@ const HOMELAB_STREAM_EFFECTS = [
 ];
 const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'period_seconds' => 6,
+  'eye_angle_degrees' => 0,
   'direction' => 'clockwise',
   'hue_degrees' => 0,
   'brightness_pct' => 100,
@@ -52,7 +53,8 @@ function homelab_stream_tuning($input)
     throw new InvalidArgumentException('Invalid lighting settings.');
   }
   $settings = HOMELAB_STREAM_TUNING_DEFAULTS;
-  foreach (['period_seconds' => [2, 20], 'hue_degrees' => [0, 359],
+  foreach (['period_seconds' => [2, 20], 'eye_angle_degrees' => [-60, 60],
+    'hue_degrees' => [0, 359],
     'brightness_pct' => [10, 100], 'bottom_phase_steps' => [-6, 6],
     'rainbow_cycles' => [1, 3], 'fade_pct' => [0, 80],
     'tail_leds' => [3, 9], 'tail_variation' => [0, 100],
@@ -286,7 +288,9 @@ function homelab_stream_leds($config, $elapsed = 0)
     $leds = [];
     for ($i = 0; $i < 24; $i++) {
       $local = $i % HOMELAB_STREAM_FAN_LEDS;
-      $angle = deg2rad(255 - 30 * $local + 7.5);
+      $eye_angle = $i < HOMELAB_STREAM_FAN_LEDS
+        ? $tuning['eye_angle_degrees'] : -$tuning['eye_angle_degrees'];
+      $angle = deg2rad(255 - 30 * $local + 7.5 + $eye_angle);
       $edge = abs(cos($angle));
       $visibility = max(0, min(1, (0.02 + 1.35 * (1 - $closure) - $edge) / 0.3));
       $visibility = $visibility * $visibility * (3 - 2 * $visibility);

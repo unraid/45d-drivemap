@@ -54,8 +54,9 @@ head follows the selected path. The default tail length is eight LEDs. The
 head-to-tail color change is centered halfway through the tail.
 Halloween Eyes treats each fan as an eye when the case is on its side. The LEDs
 seen at the top and bottom fade first. Both eyes close fully, then open smoothly. An occasional second
-blink follows. The editor shows a sideways preview. Set one eye color and the
-blink interval before applying.
+blink follows. The editor shows a sideways preview. Set one eye color, blink
+interval, and eye angle before applying. Zero degrees keeps the eyes parallel;
+positive and negative angles tilt them in opposite directions.
 
 The preview has controls for rotation time, direction, hue shift, brightness,
 bottom fan alignment, pattern repeats, and fade. Hue shift applies to full

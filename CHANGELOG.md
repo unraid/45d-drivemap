@@ -7,6 +7,7 @@
 - Changed Halloween Eyes to black out LED rows in sequence, hold narrow lit slits, then reopen them.
 - Rotated the slits vertically, added a fully dark closed phase, smoothed the LED fade, and used one selectable eye color.
 - Corrected the sideways fade direction and varied blink timing between cycles.
+- Added an eye-angle control for parallel or mirrored diagonal Halloween eyes.
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
 - Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
 - Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.

@@ -199,6 +199,10 @@ if (!$ready && $error === null) {
       <label for="homelab-period" data-animated-only><span data-period-label>Rotation time</span>: <output data-value-for="period_seconds"><?=$tuning['period_seconds']?> s</output>
         <input id="homelab-period" type="range" name="period_seconds" min="2" max="20" step="1" value="<?=$tuning['period_seconds']?>">
       </label>
+      <label for="homelab-eye-angle" data-eye-only>Eye angle: <output data-value-for="eye_angle_degrees"><?=$tuning['eye_angle_degrees']?>°</output>
+        <input id="homelab-eye-angle" type="range" name="eye_angle_degrees" min="-60" max="60" step="5" value="<?=$tuning['eye_angle_degrees']?>" aria-describedby="homelab-eye-angle-help">
+        <small id="homelab-eye-angle-help">0°: — —. Positive: \ /. Negative: / \.</small>
+      </label>
       <label for="homelab-direction" data-animated-only data-motion-only>Direction
         <select id="homelab-direction" name="direction">
           <option value="clockwise" <?=$tuning['direction'] === 'clockwise' ? 'selected' : ''?>>Clockwise</option>
@@ -330,4 +334,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=29"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=30"></script>

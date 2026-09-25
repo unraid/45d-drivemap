@@ -46,7 +46,9 @@ register_shutdown_function(function () use ($pid_path, $pid) {
 });
 $started = microtime(true);
 $previous = array_fill(0, 24, '000000');
-$fade_pct = ($config['effect'] ?? null) === 'halloween-eyes' ? 0 : homelab_stream_tuning($config)['fade_pct'];
+$tuning = homelab_stream_tuning($config);
+$fade_pct = ($config['effect'] ?? null) === 'halloween-eyes'
+  ? min(20, max(0, ($tuning['period_seconds'] - 2) * 10)) : $tuning['fade_pct'];
 $animated = isset(HOMELAB_STREAM_EFFECTS[$config['effect'] ?? '']) ||
   ($config['effect'] ?? null) === 'center-rainbow';
 $frame_interval = $animated ? 1 / 15 : 1 / 5;

@@ -158,7 +158,7 @@ check(homelab_stream_leds(['effect' => 'orange-blue-pulse',
 $eyes_open = homelab_stream_leds(['effect' => 'halloween-eyes'], 0);
 $eyes_fading = homelab_stream_leds(['effect' => 'halloween-eyes'], 1.95);
 $eyes_closing = homelab_stream_leds(['effect' => 'halloween-eyes'], 2.2);
-$eyes_slit = homelab_stream_leds(['effect' => 'halloween-eyes'], 2.3);
+$eyes_slit = homelab_stream_leds(['effect' => 'halloween-eyes'], 2.35);
 $eyes_closed = homelab_stream_leds(['effect' => 'halloween-eyes'], 2.6);
 check(count(array_filter($eyes_open, fn($color) => $color !== '000000')) === 24 &&
   count(array_unique($eyes_open)) === 1 && $eyes_open[0] === HOMELAB_BRAND_ORANGE,
@@ -171,12 +171,33 @@ check(count(array_filter($eyes_closing, fn($color) => $color !== '000000')) === 
   'sideways vertical LED rows fade in sequence and leave a narrow slit');
 check(count(array_filter($eyes_closed, fn($color) => $color !== '000000')) === 0 &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 2.8) === $eyes_closed &&
-  homelab_stream_leds(['effect' => 'halloween-eyes'], 3.2) === $eyes_closing &&
-  homelab_stream_leds(['effect' => 'halloween-eyes'], 3.6) === $eyes_open &&
+  count(array_filter(homelab_stream_leds(['effect' => 'halloween-eyes'], 3.4),
+    fn($color) => $color !== '000000')) === 8 &&
+  homelab_stream_leds(['effect' => 'halloween-eyes'], 3.8) === $eyes_open &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 9.2) === $eyes_closed &&
-  homelab_stream_leds(['effect' => 'halloween-eyes'], 10.6) === $eyes_closed &&
+  homelab_stream_leds(['effect' => 'halloween-eyes'], 10.6) === $eyes_open &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 11.2) === $eyes_open,
-  'eyes close fully, reopen smoothly, and sometimes blink twice');
+  'eyes close fully and reopen once per cycle');
+foreach ([2, 3, 6, 8] as $period) {
+  $previous = array_fill(0, 24, '000000');
+  $dark_frames = 0;
+  $dark_segments = 0;
+  $was_dark = false;
+  $fade = min(20, max(0, ($period - 2) * 10));
+  for ($frame = 0; $frame < $period * 15; $frame++) {
+    $target = homelab_stream_leds(['effect' => 'halloween-eyes',
+      'period_seconds' => $period, 'eye_angle_degrees' => 60], $frame / 15);
+    $previous = homelab_stream_blend_frame($previous, $target, $fade);
+    $dark = count(array_filter($previous, fn($color) => $color !== '000000')) === 0;
+    if ($dark) {
+      $dark_frames++;
+      if (!$was_dark) $dark_segments++;
+    }
+    $was_dark = $dark;
+  }
+  check($dark_frames >= 2 && $dark_segments === 1,
+    "$period-second eye blink closes fully once after smoothing");
+}
 check(homelab_eye_closure(2.0, 6) !== homelab_eye_closure(8.0, 6) &&
   homelab_stream_leds(['effect' => 'halloween-eyes', 'period_seconds' => 8], 3.5) === $eyes_closed &&
   homelab_stream_leds(['effect' => 'halloween-eyes',

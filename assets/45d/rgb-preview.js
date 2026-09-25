@@ -150,22 +150,13 @@
     const cycle = Math.floor(elapsed / period);
     const time = elapsed % period;
     const variation = ((cycle + 1) * 73 + (cycle + 1) * (cycle + 1) * 29 + 13) % 101;
-    const duration = Math.min(2.25, period * 0.34);
+    const duration = Math.min(3, period * (0.3 + (variation % 5) / 50));
     const first = period * (0.27 + (variation % 13) / 100);
-    const blinks = [[first, duration]];
-    if (variation % 4 === 1) {
-      blinks.push([first + duration + Math.min(0.15, period * 0.04), Math.min(0.65, period * 0.12)]);
-    }
-    let closure = 0;
-    for (const [start, length] of blinks) {
-      if (time >= start && time <= start + length) {
-        const progress = (time - start) / length;
-        const ramp = Math.max(0, Math.min(1, progress < 0.42 ? progress / 0.42 :
-          (progress <= 0.58 ? 1 : (1 - progress) / 0.42)));
-        closure = Math.max(closure, ramp * ramp * (3 - 2 * ramp));
-      }
-    }
-    return closure;
+    if (time < first || time > first + duration) return 0;
+    const progress = (time - first) / duration;
+    const ramp = Math.max(0, Math.min(1, progress < 0.42 ? progress / 0.42 :
+      (progress <= 0.58 ? 1 : (1 - progress) / 0.42)));
+    return ramp * ramp * (3 - 2 * ramp);
   }
 
   function targetColor(index) {
@@ -253,7 +244,9 @@
   }
 
   function updateFrameColors(force = false) {
-    const fade = force || mode.value === 'halloween-eyes' ? 0 : Number(fields.fade_pct.value);
+    const fade = force ? 0 : mode.value === 'halloween-eyes'
+      ? Math.min(20, Math.max(0, (Number(fields.period_seconds.value) - 2) * 10))
+      : Number(fields.fade_pct.value);
     displayedColors = displayedColors.map((old, index) => {
       const target = targetColor(index);
       return target.map((value, channel) => {

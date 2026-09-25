@@ -210,21 +210,14 @@ function homelab_eye_closure($elapsed, $period)
   $cycle = (int) floor($elapsed / $period);
   $time = fmod($elapsed, $period);
   $variation = (($cycle + 1) * 73 + ($cycle + 1) * ($cycle + 1) * 29 + 13) % 101;
-  $duration = min(2.25, $period * 0.34);
+  $duration = min(3, $period * (0.3 + ($variation % 5) / 50));
   $first = $period * (0.27 + ($variation % 13) / 100);
-  $blinks = [[$first, $duration]];
-  if ($variation % 4 === 1) {
-    $blinks[] = [$first + $duration + min(0.15, $period * 0.04),
-      min(0.65, $period * 0.12)];
-  }
   $closure = 0;
-  foreach ($blinks as [$start, $length]) {
-    if ($time >= $start && $time <= $start + $length) {
-      $progress = ($time - $start) / $length;
-      $ramp = max(0, min(1, $progress < 0.42 ? $progress / 0.42 :
-        ($progress <= 0.58 ? 1 : (1 - $progress) / 0.42)));
-      $closure = max($closure, $ramp * $ramp * (3 - 2 * $ramp));
-    }
+  if ($time >= $first && $time <= $first + $duration) {
+    $progress = ($time - $first) / $duration;
+    $ramp = max(0, min(1, $progress < 0.42 ? $progress / 0.42 :
+      ($progress <= 0.58 ? 1 : (1 - $progress) / 0.42)));
+    $closure = $ramp * $ramp * (3 - 2 * $ramp);
   }
   return $closure;
 }

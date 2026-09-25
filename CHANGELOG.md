@@ -10,6 +10,7 @@
 - Added an eye-angle control for parallel or mirrored diagonal Halloween eyes.
 - Added an optional mesh view that softens the lighting preview without changing the fan output.
 - Spread mesh-view light across each fan face to match the X4's illuminated fan surface.
+- Removed rapid second blinks and added light frame smoothing to reduce flicker while keeping a fully dark closed phase.
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
 - Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
 - Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.

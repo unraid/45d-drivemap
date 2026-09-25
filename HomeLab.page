@@ -196,10 +196,10 @@ if (!$ready && $error === null) {
       <p data-separate-help hidden>Set a fan to black to turn it off.</p>
     </div>
     <div class="homelab-tuning" data-tuning-controls>
-      <label for="homelab-period" data-animated-only>Rotation time: <output data-value-for="period_seconds"><?=$tuning['period_seconds']?> s</output>
+      <label for="homelab-period" data-animated-only><span data-period-label>Rotation time</span>: <output data-value-for="period_seconds"><?=$tuning['period_seconds']?> s</output>
         <input id="homelab-period" type="range" name="period_seconds" min="2" max="20" step="1" value="<?=$tuning['period_seconds']?>">
       </label>
-      <label for="homelab-direction" data-animated-only>Direction
+      <label for="homelab-direction" data-animated-only data-motion-only>Direction
         <select id="homelab-direction" name="direction">
           <option value="clockwise" <?=$tuning['direction'] === 'clockwise' ? 'selected' : ''?>>Clockwise</option>
           <option value="counterclockwise" <?=$tuning['direction'] === 'counterclockwise' ? 'selected' : ''?>>Counterclockwise</option>
@@ -211,10 +211,10 @@ if (!$ready && $error === null) {
       <label for="homelab-brightness" data-stream-only>Brightness: <output data-value-for="brightness_pct"><?=$tuning['brightness_pct']?>%</output>
         <input id="homelab-brightness" type="range" name="brightness_pct" min="10" max="100" step="5" value="<?=$tuning['brightness_pct']?>">
       </label>
-      <label for="homelab-alignment" data-animated-only>Bottom fan alignment: <output data-value-for="bottom_phase_steps"><?=$tuning['bottom_phase_steps']?> LEDs</output>
+      <label for="homelab-alignment" data-animated-only data-motion-only>Bottom fan alignment: <output data-value-for="bottom_phase_steps"><?=$tuning['bottom_phase_steps']?> LEDs</output>
         <input id="homelab-alignment" type="range" name="bottom_phase_steps" min="-6" max="6" step="1" value="<?=$tuning['bottom_phase_steps']?>">
       </label>
-      <label for="homelab-cycles" data-animated-only>Pattern repeats
+      <label for="homelab-cycles" data-animated-only data-motion-only>Pattern repeats
         <select id="homelab-cycles" name="rainbow_cycles">
           <?php foreach ([1, 2, 3] as $cycles): ?>
             <option value="<?=$cycles?>" <?=$tuning['rainbow_cycles'] === $cycles ? 'selected' : ''?>><?=$cycles?></option>
@@ -310,6 +310,7 @@ if (!$ready && $error === null) {
   #homelab-rgb-preview .homelab-preview-toolbar { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin:.25rem 0 1rem; }
   #homelab-rgb-preview .homelab-preview-toolbar > label:first-child { font-weight:600; }
   #homelab-rgb-preview .homelab-preview-stage { position:relative; width:min(100%,420px); margin:0 auto; }
+  #homelab-rgb-preview .homelab-preview-stage.homelab-sideways { width:min(100%,600px); }
   #homelab-rgb-preview canvas { display:block; width:100%; height:auto; cursor:pointer; }
   #homelab-rgb-preview canvas:focus-visible { outline:2px solid #e28935; outline-offset:2px; }
   #homelab-rgb-preview .homelab-led-popover { position:absolute; z-index:5; width:200px; padding:.75rem; border:1px solid #9aa8b3; border-radius:8px; background:var(--background-color,#fff); color:inherit; box-shadow:0 8px 24px rgba(0,0,0,.2); }
@@ -329,4 +330,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=25"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=26"></script>

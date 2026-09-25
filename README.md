@@ -35,7 +35,7 @@ Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
 Cycle. Click **Apply lighting**.
 The lighting editor also offers independent, freely chosen colors for the top and
 bottom fans, Outer Loop, Synchronized Wave, Two-Color Loop, Comet Loop,
-Two-Color Pulse, and custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open its
+Two-Color Pulse, Halloween Eyes, and custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open its
 color editor, or fill either fan. The orange/blue split button provides a
 starting palette. Apply the lighting to send it to the fans. The palette is saved at
 `/boot/config/plugins/45homelab/rgb-custom.json`.
@@ -52,6 +52,9 @@ their full rainbow or blend the two chosen colors. Comet also offers tail length
 and tail variation; variation changes individual tail LEDs over time while the
 head follows the selected path. The default tail length is eight LEDs. The
 head-to-tail color change is centered halfway through the tail.
+Halloween Eyes treats each fan as an eye when the case is on its side. Both eyes
+blink together, with an occasional second blink. The editor shows a sideways
+preview. Set the eye glow, accent color, and blink interval before applying.
 
 The preview has controls for rotation time, direction, hue shift, brightness,
 bottom fan alignment, pattern repeats, and fade. Hue shift applies to full

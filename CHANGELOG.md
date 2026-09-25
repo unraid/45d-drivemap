@@ -3,6 +3,7 @@
 ## 0.5.0
 
 ### Added
+- Added Halloween Eyes: two fan eyes with a sideways preview, selectable glow and accent colors, synchronized blinks, and occasional double blinks.
 - Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
 - Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
 - Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.

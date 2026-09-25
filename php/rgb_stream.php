@@ -15,6 +15,7 @@ const HOMELAB_STREAM_EFFECTS = [
   'brand-loop' => 'Two-Color Loop',
   'comet-loop' => 'Comet Loop',
   'orange-blue-pulse' => 'Two-Color Pulse',
+  'halloween-eyes' => 'Halloween Eyes',
 ];
 const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'period_seconds' => 6,
@@ -202,6 +203,25 @@ function homelab_stream_palette_color($hue, $tuning)
   return homelab_stream_color_wheel($hue);
 }
 
+function homelab_eye_opening($elapsed, $period)
+{
+  $cycle = (int) floor($elapsed / $period);
+  $time = fmod($elapsed, $period);
+  $duration = min(0.55, $period * 0.2);
+  $first = $period * 0.5;
+  $starts = [$first];
+  if ($cycle % 4 === 0) {
+    $starts[] = $first + $duration + min(0.16, $period * 0.05);
+  }
+  $blink = 0;
+  foreach ($starts as $start) {
+    if ($time >= $start && $time <= $start + $duration) {
+      $blink = max($blink, pow(sin(M_PI * ($time - $start) / $duration), 2));
+    }
+  }
+  return 1 - $blink;
+}
+
 function homelab_stream_validate_led_colors($colors)
 {
   if (!is_array($colors) || array_keys($colors) !== range(0, 23)) {
@@ -256,6 +276,25 @@ function homelab_stream_leds($config, $elapsed = 0)
   $hue_offset = (int) round($tuning['hue_degrees'] * 1536 / 360);
   $bottom_offset = $tuning['bottom_phase_steps'] * 128 * $cycles;
   $effect = $config['effect'] ?? null;
+  if ($effect === 'halloween-eyes') {
+    $opening = homelab_eye_opening($elapsed, $tuning['period_seconds']);
+    $leds = [];
+    for ($i = 0; $i < 24; $i++) {
+      $local = $i % HOMELAB_STREAM_FAN_LEDS;
+      $angle = deg2rad(255 - 30 * $local);
+      $edge = abs(cos($angle));
+      $visibility = max(0, min(1, (0.05 + 1.2 * $opening - $edge) / 0.18));
+      $visibility = $visibility * $visibility * (3 - 2 * $visibility);
+      $gaze = $i < HOMELAB_STREAM_FAN_LEDS ? 0 : 6;
+      $distance = abs($local - $gaze);
+      $distance = min($distance, HOMELAB_STREAM_FAN_LEDS - $distance);
+      $accent = max(0, 0.8 - 0.5 * $distance);
+      $color = homelab_stream_mix($tuning['color_primary'], $tuning['color_secondary'], $accent);
+      $leds[] = homelab_stream_brightness(
+        homelab_stream_level($color, $visibility), $tuning['brightness_pct']);
+    }
+    return $leds;
+  }
   if ($effect === 'orange-blue-pulse') {
     $leds = [];
     $direction = $tuning['direction'] === 'counterclockwise' ? -1 : 1;

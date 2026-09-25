@@ -155,6 +155,24 @@ check($pulse === homelab_stream_leds(['effect' => 'orange-blue-pulse'], 6),
 check(homelab_stream_leds(['effect' => 'orange-blue-pulse',
   'color_primary' => '#00FF00', 'color_secondary' => '#FF00FF'], 0)[0] === '00FF00',
   'pulse uses chosen top color');
+$eyes_open = homelab_stream_leds(['effect' => 'halloween-eyes'], 0);
+$eyes_closing = homelab_stream_leds(['effect' => 'halloween-eyes'], 3.14);
+$eyes_closed = homelab_stream_leds(['effect' => 'halloween-eyes'], 3.275);
+check(count(array_filter($eyes_open, fn($color) => $color !== '000000')) === 24 &&
+  $eyes_open[0] === $eyes_open[18] && $eyes_open[0] !== $eyes_open[3],
+  'both open eyes use matching inner blue accents and orange rings');
+check(count(array_filter($eyes_closing, fn($color) => $color !== '000000')) === 8 &&
+  $eyes_closing[0] !== '000000' && $eyes_closing[3] === '000000' &&
+  count(array_filter($eyes_closed, fn($color) => $color !== '000000')) === 0,
+  'sideways eye LEDs narrow to slits before both eyes close');
+check(homelab_stream_leds(['effect' => 'halloween-eyes'], 3.6) === $eyes_open &&
+  homelab_stream_leds(['effect' => 'halloween-eyes'], 3.985) === $eyes_closed &&
+  homelab_stream_leds(['effect' => 'halloween-eyes'], 9.985) === $eyes_open,
+  'eyes reopen after a blink and sometimes blink twice');
+check(homelab_stream_leds(['effect' => 'halloween-eyes', 'period_seconds' => 8], 4.275) === $eyes_closed &&
+  homelab_stream_leds(['effect' => 'halloween-eyes',
+    'color_primary' => '#00FF00', 'color_secondary' => '#FF00FF'], 0)[3] === '00FF00',
+  'blink interval and selected eye colors affect the effect');
 check(homelab_stream_tuning([]) === HOMELAB_STREAM_TUNING_DEFAULTS,
   'streamed effects have stable defaults');
 foreach (HOMELAB_STREAM_EFFECTS as $effect => $label) {
@@ -243,6 +261,7 @@ check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan co
   strpos($page, 'Synchronized Wave') !== false && strpos($page, 'bottom_phase_steps') !== false &&
   strpos($page, 'Two-Color Loop') !== false && strpos($page, 'Comet Loop') !== false &&
   strpos($page, 'Two-Color Pulse') !== false && strpos($page, 'name="color_primary"') !== false &&
+  strpos($page, 'Halloween Eyes') !== false && strpos($page, 'data-period-label') !== false &&
   strpos($page, 'name="color_secondary"') !== false && strpos($page, 'name="tail_variation"') !== false &&
   strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit LED') !== false &&
   strpos($page, 'data-led-popover') !== false &&

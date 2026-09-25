@@ -62,7 +62,8 @@
     'synchronized-rainbow': [brandOrange, brandBlue, 'rainbow'],
     'brand-loop': [brandOrange, brandBlue, 'two-color'],
     'comet-loop': [brandOrange, brandBlue, 'two-color'],
-    'orange-blue-pulse': [brandOrange, brandBlue, 'two-color']
+    'orange-blue-pulse': [brandOrange, brandBlue, 'two-color'],
+    'halloween-eyes': [brandOrange, brandBlue, 'two-color']
   };
   const colorDrafts = new Map();
   let lastMode = mode.value;
@@ -88,6 +89,7 @@
   }
   const descriptions = {
     'custom-leds': 'Select an LED in the preview to change its color.',
+    'halloween-eyes': 'Each fan is one eye. The preview shows the case on its side.',
     global: 'Animated previews are approximate.'
   };
   let customColors;
@@ -142,6 +144,23 @@
     return colorWheel(hue, brightness);
   }
 
+  function eyeOpening() {
+    const period = Number(fields.period_seconds.value);
+    const cycle = Math.floor(elapsed / period);
+    const time = elapsed % period;
+    const duration = Math.min(0.55, period * 0.2);
+    const first = period * 0.5;
+    const starts = cycle % 4 === 0
+      ? [first, first + duration + Math.min(0.16, period * 0.05)] : [first];
+    let blink = 0;
+    for (const start of starts) {
+      if (time >= start && time <= start + duration) {
+        blink = Math.max(blink, Math.sin(Math.PI * (time - start) / duration) ** 2);
+      }
+    }
+    return 1 - blink;
+  }
+
   function targetColor(index) {
     if (mode.value === 'separate') {
       return chosenColor(index < 12 ? 'color_primary' : 'color_secondary');
@@ -162,6 +181,17 @@
     if (mode.value === 'custom-leds') {
       const hex = customColors[index];
       return [0, 2, 4].map((offset) => Math.round(parseInt(hex.slice(offset, offset + 2), 16) * brightness / 100));
+    }
+    if (mode.value === 'halloween-eyes') {
+      const local = index % 12;
+      const edge = Math.abs(Math.cos(ledAngle(local)));
+      const mask = Math.max(0, Math.min(1, (0.05 + 1.2 * eyeOpening() - edge) / 0.18));
+      const visibility = mask * mask * (3 - 2 * mask);
+      const gaze = index < 12 ? 0 : 6;
+      const distance = Math.abs(local - gaze);
+      const accent = Math.max(0, 0.8 - 0.5 * Math.min(distance, 12 - distance));
+      const color = mixColor(chosenColor('color_primary'), chosenColor('color_secondary'), accent);
+      return scaleColor(color, visibility * brightness / 100);
     }
     const cycles = Number(fields.rainbow_cycles.value);
     const direction = fields.direction.value === 'counterclockwise' ? -1 : 1;
@@ -282,9 +312,10 @@
   function updateMode() {
     const custom = mode.value === 'custom-leds';
     const separate = mode.value === 'separate';
+    const halloween = mode.value === 'halloween-eyes';
     const rainbow = mode.value === 'pinwheel-rainbow' || mode.value === 'synchronized-rainbow';
     const animated = rainbow || mode.value === 'brand-loop' || mode.value === 'comet-loop' ||
-      mode.value === 'orange-blue-pulse';
+      mode.value === 'orange-blue-pulse' || halloween;
     const streamed = animated || custom;
     if (mode.value !== lastMode) {
       colorDrafts.set(lastMode, [fields.color_primary.value, fields.color_secondary.value, fields.palette_mode.value]);
@@ -303,6 +334,12 @@
     colorPickers.hidden = !separate && (!animated || (rainbow && fields.palette_mode.value === 'rainbow'));
     separateHelp.hidden = !separate;
     tuningControls.hidden = !streamed;
+    canvas.width = halloween ? 600 : 420;
+    canvas.height = halloween ? 420 : 600;
+    canvas.setAttribute('aria-label', halloween
+      ? 'Two fan eyes shown side by side. Their lights close and open like eyelids.'
+      : 'Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color.');
+    stage.classList.toggle('homelab-sideways', halloween);
     for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;
     for (const control of root.querySelectorAll('[data-comet-only]')) control.hidden = mode.value !== 'comet-loop';
     for (const control of root.querySelectorAll('[data-loop-only]')) {
@@ -313,12 +350,15 @@
       control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value) ||
         fields.middle_enabled.value !== '1' || Number(fields.skipped_leds.value) === 0;
     }
-    primaryLabel.textContent = mode.value === 'comet-loop' ? 'Head' :
+    primaryLabel.textContent = halloween ? 'Eye glow' : mode.value === 'comet-loop' ? 'Head' :
       (separate || mode.value === 'orange-blue-pulse' ? 'Top fan' : 'Primary');
-    secondaryLabel.textContent = mode.value === 'comet-loop' ? 'Tail' :
+    secondaryLabel.textContent = halloween ? 'Eye accent' : mode.value === 'comet-loop' ? 'Tail' :
       (separate || mode.value === 'orange-blue-pulse' ? 'Bottom fan' : 'Secondary');
     popover.hidden = true;
-    for (const label of root.querySelectorAll('[data-animated-only]')) label.hidden = !animated;
+    root.querySelector('[data-period-label]').textContent = halloween ? 'Blink interval' : 'Rotation time';
+    for (const label of root.querySelectorAll('[data-animated-only]')) {
+      label.hidden = !animated || (halloween && label.hasAttribute('data-motion-only'));
+    }
     for (const label of root.querySelectorAll('[data-rainbow-only]')) {
       label.hidden = !rainbow || fields.palette_mode.value !== 'rainbow';
     }
@@ -379,7 +419,7 @@
     context.font = '13px sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText(fanIndex === 0 ? 'TOP' : 'BOTTOM', x, y);
+    if (mode.value !== 'halloween-eyes') context.fillText(fanIndex === 0 ? 'TOP' : 'BOTTOM', x, y);
   }
 
   function draw() {
@@ -388,6 +428,11 @@
       ? { body: '#25313b', surface: '#111b23', border: '#5a6c78', off: '#3b4a55', text: '#e5edf3' }
       : { body: '#dde3e8', surface: '#f7f9fa', border: '#798b99', off: '#aab6c0', text: '#25313b' };
     context.clearRect(0, 0, canvas.width, canvas.height);
+    if (mode.value === 'halloween-eyes') {
+      context.save();
+      context.translate(600, 0);
+      context.rotate(Math.PI / 2);
+    }
     fan(170, 0, palette);
     fan(430, 1, palette);
     if (['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value)) {
@@ -413,7 +458,8 @@
         }
       }
     }
-    circle(210, 300, 4, palette.text, null);
+    if (mode.value === 'halloween-eyes') context.restore();
+    else circle(210, 300, 4, palette.text, null);
   }
 
   function frame() {

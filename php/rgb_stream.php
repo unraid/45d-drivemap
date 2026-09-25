@@ -3,6 +3,8 @@
 // The X4 has two 12-LED fans in series on the ASRock ARGB header.
 const HOMELAB_STREAM_LED_COUNT = 303;
 const HOMELAB_STREAM_FAN_LEDS = 12;
+const HOMELAB_BRAND_ORANGE = 'FF4500';
+const HOMELAB_BRAND_BLUE = '0000FF';
 // Clockwise around the pair: top left to top right, then bottom right to left.
 const HOMELAB_PINWHEEL_ORDER = [2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 12, 13, 14, 15];
 const HOMELAB_TOP_SKIP_PRIORITY = [11, 0, 10, 1, 9, 2];
@@ -23,14 +25,14 @@ const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'rainbow_cycles' => 1,
   'fade_pct' => 35,
   'palette_mode' => 'rainbow',
-  'color_primary' => 'FF4500',
-  'color_secondary' => '0000FF',
+  'color_primary' => HOMELAB_BRAND_ORANGE,
+  'color_secondary' => HOMELAB_BRAND_BLUE,
   'tail_leds' => 6,
   'tail_variation' => 50,
   'skipped_leds' => 4,
   'virtual_gap_steps' => 1,
   'middle_enabled' => false,
-  'middle_color' => 'FFFFFF',
+  'middle_color' => HOMELAB_BRAND_ORANGE,
 ];
 
 function homelab_pinwheel_order($skipped_leds)
@@ -43,20 +45,12 @@ function homelab_pinwheel_order($skipped_leds)
   return array_values(array_filter($perimeter, fn($index) => !isset($skipped[$index])));
 }
 
-function homelab_stream_color_defaults($effect)
-{
-  return $effect === 'comet-loop'
-    ? ['color_primary' => 'FFFFFF', 'color_secondary' => '00AFFF']
-    : ['color_primary' => 'FF4500', 'color_secondary' => '0000FF'];
-}
-
 function homelab_stream_tuning($input)
 {
   if (!is_array($input)) {
     throw new InvalidArgumentException('Invalid lighting settings.');
   }
-  $settings = array_merge(HOMELAB_STREAM_TUNING_DEFAULTS,
-    homelab_stream_color_defaults($input['effect'] ?? null));
+  $settings = HOMELAB_STREAM_TUNING_DEFAULTS;
   foreach (['period_seconds' => [2, 20], 'hue_degrees' => [0, 359],
     'brightness_pct' => [10, 100], 'bottom_phase_steps' => [-6, 6],
     'rainbow_cycles' => [1, 3], 'fade_pct' => [0, 80],

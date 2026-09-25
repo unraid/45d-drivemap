@@ -139,7 +139,7 @@ if (!$ready && $error === null) {
       <canvas width="420" height="600" role="img" aria-label="Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color." tabindex="0"></canvas>
       <div class="homelab-led-popover" data-led-popover role="dialog" aria-label="Edit LED color" hidden>
         <div class="homelab-popover-head"><strong data-led-label>Top LED 1</strong><button type="button" data-close-led aria-label="Close color editor">&times;</button></div>
-        <label for="homelab-paint-color">Color <input id="homelab-paint-color" type="color" value="#FF4500" data-paint-color></label>
+        <label for="homelab-paint-color">Color <input id="homelab-paint-color" type="color" value="#<?=HOMELAB_BRAND_ORANGE?>" data-paint-color></label>
         <div class="homelab-popover-actions"><button type="button" data-apply-led>Apply color</button><button type="button" data-off-led>Turn off</button></div>
       </div>
     </div>
@@ -171,7 +171,7 @@ if (!$ready && $error === null) {
       </label>
       <button type="button" data-open-led>Edit LED</button>
       <span class="homelab-custom-divider" aria-hidden="true"></span>
-      <label for="homelab-fill-color">Fill color <input id="homelab-fill-color" type="color" value="#FF4500" data-fill-color></label>
+      <label for="homelab-fill-color">Fill color <input id="homelab-fill-color" type="color" value="#<?=HOMELAB_BRAND_ORANGE?>" data-fill-color></label>
       <button type="button" data-fill-top>Fill top</button>
       <button type="button" data-fill-bottom>Fill bottom</button>
       <button type="button" data-fill-all>Fill all</button>
@@ -329,4 +329,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=21"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=22"></script>

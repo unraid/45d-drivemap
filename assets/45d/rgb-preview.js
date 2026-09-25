@@ -52,15 +52,17 @@
     period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
     brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1,
     fade_pct: 35, tail_leds: 6, tail_variation: 50, skipped_leds: 4, virtual_gap_steps: 1,
-    middle_enabled: '0', middle_color: '#ffffff'
+    middle_enabled: '0', middle_color: '#ff4500'
   };
+  const brandOrange = '#ff4500';
+  const brandBlue = '#0000ff';
   const patternDefaults = {
-    separate: ['#ffffff', '#0000ff', 'rainbow'],
-    'pinwheel-rainbow': ['#ff4500', '#0000ff', 'rainbow'],
-    'synchronized-rainbow': ['#ff4500', '#0000ff', 'rainbow'],
-    'brand-loop': ['#ff4500', '#0000ff', 'rainbow'],
-    'comet-loop': ['#ffffff', '#00afff', 'rainbow'],
-    'orange-blue-pulse': ['#ff4500', '#0000ff', 'rainbow']
+    separate: [brandOrange, brandBlue, 'two-color'],
+    'pinwheel-rainbow': [brandOrange, brandBlue, 'rainbow'],
+    'synchronized-rainbow': [brandOrange, brandBlue, 'rainbow'],
+    'brand-loop': [brandOrange, brandBlue, 'two-color'],
+    'comet-loop': [brandOrange, brandBlue, 'two-color'],
+    'orange-blue-pulse': [brandOrange, brandBlue, 'two-color']
   };
   const colorDrafts = new Map();
   let lastMode = mode.value;
@@ -448,7 +450,8 @@
     setCustomColors(Array(24).fill(fillColor.value.slice(1)));
   });
   root.querySelector('[data-split]').addEventListener('click', () => {
-    setCustomColors([...Array(12).fill('FF4500'), ...Array(12).fill('0000FF')]);
+    setCustomColors([...Array(12).fill(brandOrange.slice(1).toUpperCase()),
+      ...Array(12).fill(brandBlue.slice(1).toUpperCase())]);
   });
   root.querySelector('[data-clear]').addEventListener('click', () => {
     setCustomColors(Array(24).fill('000000'));

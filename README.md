@@ -39,6 +39,10 @@ Two-Color Pulse, and custom colors for all 24 LEDs. Select Custom LEDs, then sel
 color editor, or fill either fan. The orange/blue split button provides a
 starting palette. Apply the lighting to send it to the fans. The palette is saved at
 `/boot/config/plugins/45homelab/rgb-custom.json`.
+Separate fan colors and animated patterns start with the X4's calibrated dark
+orange (`#FF4500`) and blue (`#0000FF`). Outer Loop and Synchronized Wave keep
+their full rainbow by default. Select Two colors to use the orange and blue
+palette for either rainbow pattern. These defaults do not replace saved lighting choices.
 Outer Loop, Two-Color Loop, and Comet Loop reserve four inward-facing LEDs per
 fan by default. The Middle width control offers zero, two, four, or six LEDs per
 fan and updates the preview before applying. Middle LEDs can stay off or use a

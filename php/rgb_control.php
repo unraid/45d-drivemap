@@ -10,12 +10,12 @@ const HOMELAB_RGB_PRESETS = [
   'white' => ['label' => 'White', 'color' => 'FFFFFF'],
   'warm-white' => ['label' => 'Warm White', 'color' => 'FFD8A8'],
   'red' => ['label' => 'Red', 'color' => 'FF0000'],
-  'orange' => ['label' => 'Orange', 'color' => 'FF4500'],
+  'orange' => ['label' => 'Orange', 'color' => HOMELAB_BRAND_ORANGE],
   'yellow' => ['label' => 'Yellow', 'color' => 'FFFF00'],
   'green' => ['label' => 'Green', 'color' => '00FF00'],
   'teal' => ['label' => 'Teal', 'color' => '00BFA5'],
   'cyan' => ['label' => 'Cyan', 'color' => '00FFFF'],
-  'blue' => ['label' => 'Blue', 'color' => '0000FF'],
+  'blue' => ['label' => 'Blue', 'color' => HOMELAB_BRAND_BLUE],
   'purple' => ['label' => 'Purple', 'color' => '8000FF'],
   'pink' => ['label' => 'Pink', 'color' => 'FF69B4'],
 ];
@@ -207,11 +207,11 @@ function homelab_rgb_stream_selection()
 {
   $config = json_decode((string) @file_get_contents(homelab_stream_paths()['config']), true);
   if (!is_array($config)) {
-    return ['top' => 'white', 'bottom' => 'blue'];
+    return ['top' => 'orange', 'bottom' => 'blue'];
   }
   $colors = [];
   foreach (['top', 'bottom'] as $fan) {
-    $colors[$fan] = $fan === 'top' ? 'white' : 'blue';
+    $colors[$fan] = $fan === 'top' ? 'orange' : 'blue';
     foreach (HOMELAB_RGB_PRESETS as $name => $preset) {
       if (($preset['color'] ?: '000000') === ($config[$fan] ?? null)) {
         $colors[$fan] = $name;

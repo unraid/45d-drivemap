@@ -33,7 +33,7 @@ check(substr($packets[0], 0, 9) === "\x00\x10\x00\xff\xe3\x00\x00\x2f\x01" &&
   substr($packets[0], 45, 18) === str_repeat("\x00\x00\xff", 6) &&
   substr($packets[1], 5, 18) === str_repeat("\x00\x00\xff", 6),
   'encodes both fans in SignalRGB-style stream packets');
-$rainbow = homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 0);
+$rainbow = homelab_stream_leds(['effect' => 'pinwheel-rainbow', 'palette_mode' => 'rainbow'], 0);
 check(homelab_pinwheel_order(4) === HOMELAB_PINWHEEL_ORDER,
   'default middle width preserves balanced X4 perimeter');
 check(homelab_stream_tuning(['skipped_leds' => 5])['skipped_leds'] === 4 &&
@@ -54,9 +54,9 @@ check(count(array_filter($rainbow, fn($color) => $color !== '000000')) === 16 &&
 check($rainbow[8] !== $rainbow[20] && $rainbow[14] !== $rainbow[2] &&
   count(array_unique(array_map(fn($index) => $rainbow[$index], HOMELAB_PINWHEEL_ORDER))) === 16,
   'pinwheel spreads all rainbow hues across one perimeter');
-check($rainbow === homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 6),
+check($rainbow === homelab_stream_leds(['effect' => 'pinwheel-rainbow', 'palette_mode' => 'rainbow'], 6),
   'pinwheel repeats after one full rotation');
-$without_gap = homelab_stream_leds(['effect' => 'pinwheel-rainbow', 'virtual_gap_steps' => 0], 0);
+$without_gap = homelab_stream_leds(['effect' => 'pinwheel-rainbow', 'palette_mode' => 'rainbow', 'virtual_gap_steps' => 0], 0);
 check($rainbow[HOMELAB_PINWHEEL_ORDER[7]] !== $without_gap[HOMELAB_PINWHEEL_ORDER[7]] &&
   $rainbow[HOMELAB_PINWHEEL_ORDER[8]] === $without_gap[HOMELAB_PINWHEEL_ORDER[8]],
   'virtual gap changes spacing at fan crossings while keeping the opposite fan centered');
@@ -99,13 +99,13 @@ check($custom_brand[HOMELAB_PINWHEEL_ORDER[0]] === '00FF00' &&
   $custom_brand[HOMELAB_PINWHEEL_ORDER[8]] === '800080',
   'branded loop uses chosen colors');
 $comet = homelab_stream_leds(['effect' => 'comet-loop'], 0);
-check($comet[HOMELAB_PINWHEEL_ORDER[0]] === 'FFFFFF' &&
+check($comet[HOMELAB_PINWHEEL_ORDER[0]] === HOMELAB_BRAND_ORANGE &&
   $comet[HOMELAB_PINWHEEL_ORDER[1]] !== '000000' &&
   $comet[HOMELAB_PINWHEEL_ORDER[6]] === '000000',
-  'comet has white head and short fading tail');
-check(!in_array('FFFFFF', homelab_stream_leds(['effect' => 'comet-loop'], 8 / 18 * 6), true) &&
-  homelab_stream_leds(['effect' => 'comet-loop'], 3)[HOMELAB_PINWHEEL_ORDER[8]] === 'FFFFFF' &&
-  homelab_stream_leds(['effect' => 'comet-loop', 'virtual_gap_steps' => 0], 3)[HOMELAB_PINWHEEL_ORDER[8]] === 'FFFFFF',
+  'comet has orange head and short fading blue tail');
+check(!in_array(HOMELAB_BRAND_ORANGE, homelab_stream_leds(['effect' => 'comet-loop'], 8 / 18 * 6), true) &&
+  homelab_stream_leds(['effect' => 'comet-loop'], 3)[HOMELAB_PINWHEEL_ORDER[8]] === HOMELAB_BRAND_ORANGE &&
+  homelab_stream_leds(['effect' => 'comet-loop', 'virtual_gap_steps' => 0], 3)[HOMELAB_PINWHEEL_ORDER[8]] === HOMELAB_BRAND_ORANGE,
   'comet traverses an unlit virtual step before crossing to the next fan');
 check($comet === homelab_stream_leds(['effect' => 'comet-loop'], 0) &&
   $comet[HOMELAB_PINWHEEL_ORDER[2]] !==
@@ -127,6 +127,12 @@ check(homelab_stream_leds(['effect' => 'orange-blue-pulse',
   'pulse uses chosen top color');
 check(homelab_stream_tuning([]) === HOMELAB_STREAM_TUNING_DEFAULTS,
   'streamed effects have stable defaults');
+foreach (HOMELAB_STREAM_EFFECTS as $effect => $label) {
+  $defaults = homelab_stream_tuning(['effect' => $effect]);
+  check($defaults['color_primary'] === HOMELAB_BRAND_ORANGE &&
+    $defaults['color_secondary'] === HOMELAB_BRAND_BLUE &&
+    $defaults['palette_mode'] === 'rainbow', "$label starts with the 45D / Unraid colors and keeps rainbow available");
+}
 check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'brightness_pct' => 50])[0] === '800000',
   'brightness scales the streamed RGB frame');
 $shifted = homelab_stream_leds(['effect' => 'synchronized-rainbow', 'bottom_phase_steps' => 3]);
@@ -135,7 +141,8 @@ check($shifted[0] !== $shifted[12] && $shifted[12] === $shifted[3],
 check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'direction' => 'clockwise'], 1) !==
   homelab_stream_leds(['effect' => 'synchronized-rainbow', 'direction' => 'counterclockwise'], 1),
   'direction changes the animation');
-check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'rainbow_cycles' => 2])[1] !== $aligned[1],
+check(homelab_stream_leds(['effect' => 'synchronized-rainbow', 'palette_mode' => 'rainbow', 'rainbow_cycles' => 2])[1] !==
+  homelab_stream_leds(['effect' => 'synchronized-rainbow', 'palette_mode' => 'rainbow'])[1],
   'rainbow repeats change color spacing');
 $two_color = homelab_stream_leds(['effect' => 'pinwheel-rainbow', 'palette_mode' => 'two-color',
   'color_primary' => '#FF4500', 'color_secondary' => '#0000FF'], 0);

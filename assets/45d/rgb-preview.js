@@ -89,7 +89,7 @@
   }
   const descriptions = {
     'custom-leds': 'Select an LED in the preview to change its color.',
-    'halloween-eyes': 'Each fan is one eye. Outer LEDs turn off first, leaving a narrow slit.',
+    'halloween-eyes': 'Each fan narrows to a vertical slit, closes, then opens.',
     global: 'Animated previews are approximate.'
   };
   let customColors;
@@ -188,14 +188,11 @@
     }
     if (mode.value === 'halloween-eyes') {
       const local = index % 12;
-      const edge = Math.abs(Math.cos(ledAngle(local)));
+      const edge = Math.abs(Math.sin(ledAngle(local)));
       const closure = eyeClosure();
-      const visible = edge < 0.4 || (edge < 0.85 && closure < 0.6) || closure < 0.2;
-      const gaze = index < 12 ? 0 : 6;
-      const distance = Math.abs(local - gaze);
-      const accent = Math.max(0, 0.8 - 0.5 * Math.min(distance, 12 - distance));
-      const color = mixColor(chosenColor('color_primary'), chosenColor('color_secondary'), accent);
-      return visible ? scaleColor(color, brightness / 100) : [0, 0, 0];
+      const mask = Math.max(0, Math.min(1, (0.05 + 1.2 * (1 - closure) - edge) / 0.18));
+      const visibility = mask * mask * (3 - 2 * mask);
+      return scaleColor(chosenColor('color_primary'), visibility * brightness / 100);
     }
     const cycles = Number(fields.rainbow_cycles.value);
     const direction = fields.direction.value === 'counterclockwise' ? -1 : 1;
@@ -341,7 +338,7 @@
     canvas.width = halloween ? 600 : 420;
     canvas.height = halloween ? 420 : 600;
     canvas.setAttribute('aria-label', halloween
-      ? 'Two fan eyes shown side by side. Their lights close and open like eyelids.'
+      ? 'Two fan eyes shown side by side. Vertical slits close fully and reopen.'
       : 'Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color.');
     stage.classList.toggle('homelab-sideways', halloween);
     for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;
@@ -354,10 +351,11 @@
       control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value) ||
         fields.middle_enabled.value !== '1' || Number(fields.skipped_leds.value) === 0;
     }
-    primaryLabel.textContent = halloween ? 'Eye glow' : mode.value === 'comet-loop' ? 'Head' :
+    primaryLabel.textContent = halloween ? 'Eye color' : mode.value === 'comet-loop' ? 'Head' :
       (separate || mode.value === 'orange-blue-pulse' ? 'Top fan' : 'Primary');
-    secondaryLabel.textContent = halloween ? 'Eye accent' : mode.value === 'comet-loop' ? 'Tail' :
+    secondaryLabel.textContent = mode.value === 'comet-loop' ? 'Tail' :
       (separate || mode.value === 'orange-blue-pulse' ? 'Bottom fan' : 'Secondary');
+    secondaryLabel.closest('label').hidden = halloween;
     popover.hidden = true;
     root.querySelector('[data-period-label]').textContent = halloween ? 'Blink interval' : 'Rotation time';
     for (const label of root.querySelectorAll('[data-animated-only]')) {

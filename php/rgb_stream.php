@@ -285,15 +285,11 @@ function homelab_stream_leds($config, $elapsed = 0)
     for ($i = 0; $i < 24; $i++) {
       $local = $i % HOMELAB_STREAM_FAN_LEDS;
       $angle = deg2rad(255 - 30 * $local);
-      $edge = abs(cos($angle));
-      $visible = $edge < 0.4 || ($edge < 0.85 && $closure < 0.6) || $closure < 0.2;
-      $gaze = $i < HOMELAB_STREAM_FAN_LEDS ? 0 : 6;
-      $distance = abs($local - $gaze);
-      $distance = min($distance, HOMELAB_STREAM_FAN_LEDS - $distance);
-      $accent = max(0, 0.8 - 0.5 * $distance);
-      $color = homelab_stream_mix($tuning['color_primary'], $tuning['color_secondary'], $accent);
+      $edge = abs(sin($angle));
+      $visibility = max(0, min(1, (0.05 + 1.2 * (1 - $closure) - $edge) / 0.18));
+      $visibility = $visibility * $visibility * (3 - 2 * $visibility);
       $leds[] = homelab_stream_brightness(
-        $visible ? $color : '000000', $tuning['brightness_pct']);
+        homelab_stream_level($tuning['color_primary'], $visibility), $tuning['brightness_pct']);
     }
     return $leds;
   }

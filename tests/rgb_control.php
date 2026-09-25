@@ -156,26 +156,32 @@ check(homelab_stream_leds(['effect' => 'orange-blue-pulse',
   'color_primary' => '#00FF00', 'color_secondary' => '#FF00FF'], 0)[0] === '00FF00',
   'pulse uses chosen top color');
 $eyes_open = homelab_stream_leds(['effect' => 'halloween-eyes'], 0);
+$eyes_fading = homelab_stream_leds(['effect' => 'halloween-eyes'], 2.84);
 $eyes_closing = homelab_stream_leds(['effect' => 'halloween-eyes'], 2.9);
 $eyes_slit = homelab_stream_leds(['effect' => 'halloween-eyes'], 3.2);
+$eyes_closed = homelab_stream_leds(['effect' => 'halloween-eyes'], 3.42);
 check(count(array_filter($eyes_open, fn($color) => $color !== '000000')) === 24 &&
-  $eyes_open[0] === $eyes_open[18] && $eyes_open[0] !== $eyes_open[3],
-  'both open eyes use matching inner blue accents and orange rings');
+  count(array_unique($eyes_open)) === 1 && $eyes_open[0] === HOMELAB_BRAND_ORANGE,
+  'both open eyes use one orange color');
 check(count(array_filter($eyes_closing, fn($color) => $color !== '000000')) === 16 &&
   count(array_filter($eyes_slit, fn($color) => $color !== '000000')) === 8 &&
   count(array_filter(array_slice($eyes_slit, 0, 12), fn($color) => $color !== '000000')) === 4 &&
-  $eyes_slit[0] !== '000000' && $eyes_slit[3] === '000000',
-  'LED rows black out in sequence and leave four-LED slits on both eyes');
-check(homelab_stream_leds(['effect' => 'halloween-eyes'], 3.6) === $eyes_slit &&
+  $eyes_slit[0] === '000000' && $eyes_slit[2] !== '000000' &&
+  $eyes_fading[0] !== HOMELAB_BRAND_ORANGE && $eyes_fading[0] !== '000000',
+  'vertical LED rows fade in sequence and leave four-LED slits on both eyes');
+check(count(array_filter($eyes_closed, fn($color) => $color !== '000000')) === 0 &&
+  homelab_stream_leds(['effect' => 'halloween-eyes'], 3.6) === $eyes_closed &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 4.2) === $eyes_closing &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 4.5) === $eyes_open &&
-  homelab_stream_leds(['effect' => 'halloween-eyes'], 4.96) === $eyes_slit &&
+  homelab_stream_leds(['effect' => 'halloween-eyes'], 4.96) === $eyes_closed &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 10.96) === $eyes_open,
-  'eyes hold narrow slits, reopen in reverse, and sometimes blink twice');
-check(homelab_stream_leds(['effect' => 'halloween-eyes', 'period_seconds' => 8], 4.4) === $eyes_slit &&
+  'eyes close fully, reopen smoothly, and sometimes blink twice');
+check(homelab_stream_leds(['effect' => 'halloween-eyes', 'period_seconds' => 8], 4.5) === $eyes_closed &&
   homelab_stream_leds(['effect' => 'halloween-eyes',
     'color_primary' => '#00FF00', 'color_secondary' => '#FF00FF'], 0)[3] === '00FF00',
-  'blink interval and selected eye colors affect the effect');
+  'blink interval and single selected eye color affect the effect');
+check(homelab_stream_leds(['effect' => 'halloween-eyes', 'color_secondary' => '#FF00FF'], 0) === $eyes_open,
+  'Halloween Eyes ignores the hidden second color');
 check(homelab_stream_tuning([]) === HOMELAB_STREAM_TUNING_DEFAULTS,
   'streamed effects have stable defaults');
 foreach (HOMELAB_STREAM_EFFECTS as $effect => $label) {

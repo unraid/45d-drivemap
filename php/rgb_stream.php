@@ -27,7 +27,7 @@ const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'palette_mode' => 'rainbow',
   'color_primary' => HOMELAB_BRAND_ORANGE,
   'color_secondary' => HOMELAB_BRAND_BLUE,
-  'tail_leds' => 6,
+  'tail_leds' => 8,
   'tail_variation' => 50,
   'skipped_leds' => 4,
   'virtual_gap_steps' => 1,
@@ -295,9 +295,11 @@ function homelab_stream_leds($config, $elapsed = 0)
             $variation = 0.5 + 0.5 * sin(2 * M_PI * ($elapsed * 0.7 + $offset));
             $level *= 1 - $tuning['tail_variation'] / 100 * (0.25 * (1 - $variation));
           }
-          $head = max(0, 1 - $distance / ($tuning['tail_leds'] - 1));
+          $midpoint = ($tuning['tail_leds'] - 1) / 2;
+          $blend = max(0, min(1, ($distance - $midpoint + 1) / 2));
+          $blend = $blend * $blend * (3 - 2 * $blend);
           $color = homelab_stream_level(homelab_stream_mix(
-            $tuning['color_secondary'], $tuning['color_primary'], $head), $level);
+            $tuning['color_primary'], $tuning['color_secondary'], $blend), $level);
         }
       }
       $leds[$index] = homelab_stream_brightness($color, $tuning['brightness_pct']);

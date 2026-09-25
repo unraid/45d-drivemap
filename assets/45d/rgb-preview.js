@@ -51,7 +51,7 @@
   const defaults = {
     period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
     brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1,
-    fade_pct: 35, tail_leds: 6, tail_variation: 50, skipped_leds: 4, virtual_gap_steps: 1,
+    fade_pct: 35, tail_leds: 8, tail_variation: 50, skipped_leds: 4, virtual_gap_steps: 1,
     middle_enabled: '0', middle_color: '#ff4500'
   };
   const brandOrange = '#ff4500';
@@ -195,8 +195,10 @@
             const variation = 0.5 + 0.5 * Math.sin(2 * Math.PI * (elapsed * 0.7 + offset));
             level *= 1 - Number(fields.tail_variation.value) / 100 * (0.25 * (1 - variation));
           }
-          const head = Math.max(0, 1 - distance / (tailLength - 1));
-          color = scaleColor(mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), head), level);
+          const midpoint = (tailLength - 1) / 2;
+          const blendPosition = Math.max(0, Math.min(1, (distance - midpoint + 1) / 2));
+          const blend = blendPosition * blendPosition * (3 - 2 * blendPosition);
+          color = scaleColor(mixColor(chosenColor('color_primary'), chosenColor('color_secondary'), blend), level);
         }
       }
       return scaleColor(color, brightness / 100);

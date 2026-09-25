@@ -50,7 +50,8 @@ separate color. Separate fan colors and streamed patterns share two color picker
 Rainbow patterns can use
 their full rainbow or blend the two chosen colors. Comet also offers tail length
 and tail variation; variation changes individual tail LEDs over time while the
-head follows the selected path.
+head follows the selected path. The default tail length is eight LEDs. The
+head-to-tail color change is centered halfway through the tail.
 
 The preview has controls for rotation time, direction, hue shift, brightness,
 bottom fan alignment, pattern repeats, and fade. Hue shift applies to full

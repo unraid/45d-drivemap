@@ -19,6 +19,7 @@
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed
+- Shortened lighting editor labels and help text. Removed repeated setup and hardware details from the settings page.
 - Shared the two color pickers across separate fan colors and animated patterns, with labels and controls matched to each lighting mode.
 - Replaced the skipped LED slider with balanced middle widths of 0, 2, 4, or 6 LEDs per fan; older odd settings round down, and the default is 4.
 - Renamed the Unraid plugin to 45HomeLab and moved its settings under System Settings.

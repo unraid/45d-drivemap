@@ -85,14 +85,8 @@
     return cachedLoop;
   }
   const descriptions = {
-    'pinwheel-rainbow': 'One color pattern moves around the outward-facing hub LEDs.',
-    'synchronized-rainbow': 'Both fans show the same color at the same clock position.',
-    'brand-loop': 'Two chosen colors flow around both outer hub arcs.',
-    'comet-loop': 'A bright head travels around both outer arcs with a fading, varied tail.',
-    'orange-blue-pulse': 'Top and bottom colors alternate in a gentle pulse.',
-    'custom-leds': 'Select a hub LED to edit its color. Apply the full palette when ready.',
-    global: 'Whole-header solid colors appear on both fans. Built-in animated effects are approximate in this preview.',
-    separate: 'Top and bottom fans have independent solid colors.'
+    'custom-leds': 'Select an LED in the preview to change its color.',
+    global: 'Animated previews are approximate.'
   };
   let customColors;
   try {
@@ -320,7 +314,8 @@
       label.hidden = !rainbow || fields.palette_mode.value !== 'rainbow';
     }
     for (const label of root.querySelectorAll('[data-stream-only]')) label.hidden = !streamed;
-    description.textContent = descriptions[mode.value];
+    description.textContent = descriptions[mode.value] || '';
+    description.hidden = !description.textContent;
     elapsed = 0;
     updateFrameColors();
     draw();

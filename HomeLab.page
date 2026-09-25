@@ -35,7 +35,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       $label = HOMELAB_STREAM_EFFECTS[$action];
     } elseif ($action === 'custom-leds') {
       $result = homelab_rgb_set_custom($_POST['led_colors'] ?? null, $_POST);
-      $label = 'Custom LED colors';
+      $label = 'Custom LEDs';
     } elseif ($action === 'global') {
       $preset = $_POST['color'] ?? '';
       $result = homelab_rgb_set($preset);
@@ -45,18 +45,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
     if ($result['ok']) {
       if (!homelab_schedule_record_day($action, $_POST)) {
-        $error = 'Lighting applied, but the daytime setting could not be saved.';
+        $error = 'Lights changed, but the daytime mode was not saved.';
       } else {
         $schedule = homelab_schedule_load();
         if (homelab_schedule_is_night($schedule)) {
           $night = homelab_schedule_tick(true);
           if ($night['ok']) {
-            $message = 'Daytime lighting saved. Night mode remains active.';
+            $message = 'Daytime mode saved. Night mode is still on.';
           } else {
-            $error = 'Daytime lighting saved, but night mode could not resume: ' . $night['error'];
+            $error = 'Daytime mode saved. Night mode failed: ' . $night['error'];
           }
         } else {
-          $message = $label . ' applied to fan lights.';
+          $message = $label . ' applied.';
         }
       }
     } else {
@@ -112,7 +112,6 @@ if (!$ready && $error === null) {
 ?>
 <div class="homelab-lighting-page">
   <h2>Fan lighting</h2>
-  <p>Choose a lighting mode, preview both fan hubs, then apply it to the X4. Each daisy-chained fan has 12 LEDs.</p>
   <?php if ($message && !$schedule_action): ?>
     <p role="status"><?=htmlspecialchars($message, ENT_QUOTES, 'UTF-8')?></p>
   <?php endif; ?>
@@ -125,7 +124,7 @@ if (!$ready && $error === null) {
     <div class="homelab-mode-row">
       <label for="homelab-preview-mode">Lighting mode</label>
       <select id="homelab-preview-mode" name="lighting_action">
-        <option value="global" <?=$preview_mode === 'global' ? 'selected' : ''?>>Whole header</option>
+        <option value="global" <?=$preview_mode === 'global' ? 'selected' : ''?>>Both fans</option>
         <option value="separate" <?=$preview_mode === 'separate' ? 'selected' : ''?>>Separate fan colors</option>
         <?php foreach (HOMELAB_STREAM_EFFECTS as $value => $label): ?>
           <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$preview_mode === $value ? 'selected' : ''?>><?=htmlspecialchars($label, ENT_QUOTES, 'UTF-8')?></option>
@@ -137,14 +136,14 @@ if (!$ready && $error === null) {
     <div class="homelab-preview-column">
       <div class="homelab-preview-toolbar"><strong>Preview</strong><button type="button" data-pause aria-pressed="false">Pause preview</button><label><input type="checkbox" data-numbers> LED numbers</label></div>
     <div class="homelab-preview-stage" data-stage>
-      <canvas width="420" height="600" role="img" aria-label="Preview of top and bottom X4 fans with 12 hub LEDs each. Select a lit position to edit its color." tabindex="0"></canvas>
+      <canvas width="420" height="600" role="img" aria-label="Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color." tabindex="0"></canvas>
       <div class="homelab-led-popover" data-led-popover role="dialog" aria-label="Edit LED color" hidden>
         <div class="homelab-popover-head"><strong data-led-label>Top LED 1</strong><button type="button" data-close-led aria-label="Close color editor">&times;</button></div>
         <label for="homelab-paint-color">Color <input id="homelab-paint-color" type="color" value="#FF4500" data-paint-color></label>
         <div class="homelab-popover-actions"><button type="button" data-apply-led>Apply color</button><button type="button" data-off-led>Turn off</button></div>
       </div>
     </div>
-    <p data-description aria-live="polite"></p>
+    <p data-description aria-live="polite" hidden></p>
     </div>
     <div class="homelab-controls-column">
       <div class="homelab-mode-controls" data-global-controls>
@@ -163,14 +162,14 @@ if (!$ready && $error === null) {
         </select>
       </div>
     <div class="homelab-custom-editor" data-custom-editor <?=$preview_mode === 'custom-leds' ? '' : 'hidden'?>>
-      <label for="homelab-led-index">Choose LED
+      <label for="homelab-led-index">LED
         <select id="homelab-led-index" data-led-index>
           <?php for ($led = 1; $led <= 24; $led++): ?>
             <option value="<?=$led - 1?>"><?=$led <= 12 ? 'Top' : 'Bottom'?> <?=$led <= 12 ? $led : $led - 12?> (LED <?=$led?>)</option>
           <?php endfor; ?>
         </select>
       </label>
-      <button type="button" data-open-led>Edit selected LED</button>
+      <button type="button" data-open-led>Edit LED</button>
       <span class="homelab-custom-divider" aria-hidden="true"></span>
       <label for="homelab-fill-color">Fill color <input id="homelab-fill-color" type="color" value="#FF4500" data-fill-color></label>
       <button type="button" data-fill-top>Fill top</button>
@@ -194,7 +193,7 @@ if (!$ready && $error === null) {
           <input id="homelab-secondary" type="color" name="color_secondary" value="#<?=$preview_mode === 'separate' ? $separate_colors['bottom'] : $tuning['color_secondary']?>">
         </label>
       </div>
-      <p data-separate-help hidden>Choose any color for each fan. Black turns that fan's lights off.</p>
+      <p data-separate-help hidden>Set a fan to black to turn it off.</p>
     </div>
     <div class="homelab-tuning" data-tuning-controls>
       <label for="homelab-period" data-animated-only>Rotation time: <output data-value-for="period_seconds"><?=$tuning['period_seconds']?> s</output>
@@ -222,21 +221,20 @@ if (!$ready && $error === null) {
           <?php endforeach; ?>
         </select>
       </label>
-      <label for="homelab-fade" data-stream-only>Fade: <output data-value-for="fade_pct"><?=$tuning['fade_pct']?>%</output>
+      <label for="homelab-fade" data-stream-only>Smoothing: <output data-value-for="fade_pct"><?=$tuning['fade_pct']?>%</output>
         <input id="homelab-fade" type="range" name="fade_pct" min="0" max="80" step="5" value="<?=$tuning['fade_pct']?>">
       </label>
       <label for="homelab-middle-width" data-loop-only>Middle width: <output data-value-for="skipped_leds"><?=$tuning['skipped_leds']?> LEDs per fan</output>
-        <input id="homelab-middle-width" type="range" name="skipped_leds" min="0" max="6" step="2" value="<?=$tuning['skipped_leds']?>" aria-describedby="homelab-middle-width-help">
-        <small id="homelab-middle-width-help">Reserves a balanced inner arc on each fan: 0, 2, 4, or 6 LEDs. Choose its color below.</small>
+        <input id="homelab-middle-width" type="range" name="skipped_leds" min="0" max="6" step="2" value="<?=$tuning['skipped_leds']?>">
       </label>
       <label for="homelab-virtual-gap" data-loop-only>Virtual gap: <output data-value-for="virtual_gap_steps"><?=$tuning['virtual_gap_steps']?> per crossing</output>
         <input id="homelab-virtual-gap" type="range" name="virtual_gap_steps" min="0" max="3" step="1" value="<?=$tuning['virtual_gap_steps']?>" aria-describedby="homelab-virtual-gap-help">
-        <small id="homelab-virtual-gap-help">Adds unlit timing steps between fans without changing any physical LEDs.</small>
+        <small id="homelab-virtual-gap-help">Adds unlit steps as colors move between fans.</small>
       </label>
       <label for="homelab-middle-enabled" data-loop-only data-middle-setting>Middle LEDs
         <select id="homelab-middle-enabled" name="middle_enabled">
           <option value="0" <?=$tuning['middle_enabled'] ? '' : 'selected'?>>Off</option>
-          <option value="1" <?=$tuning['middle_enabled'] ? 'selected' : ''?>>Use separate color</option>
+          <option value="1" <?=$tuning['middle_enabled'] ? 'selected' : ''?>>On</option>
         </select>
       </label>
       <label for="homelab-middle-color" data-middle-color>Middle color
@@ -258,7 +256,7 @@ if (!$ready && $error === null) {
   </form>
   <section class="homelab-night-card" aria-labelledby="homelab-night-heading">
     <h3 id="homelab-night-heading">Night schedule</h3>
-    <p>Turn fan lights off at your chosen time, then restore the last applied daytime lighting. Times use this server's local clock (<?=htmlspecialchars(date('T'), ENT_QUOTES, 'UTF-8')?>).</p>
+    <p>Set when lights turn off and when your daytime mode returns. Times use server time (<?=htmlspecialchars(date('T'), ENT_QUOTES, 'UTF-8')?>).</p>
     <?php if ($schedule_action && $message): ?>
       <p role="status"><?=htmlspecialchars($message, ENT_QUOTES, 'UTF-8')?></p>
     <?php endif; ?>
@@ -283,7 +281,7 @@ if (!$ready && $error === null) {
       <button type="submit">Save schedule</button>
     </form>
     <?php if (is_file('/etc/acpi/powerbutton.d/README')): ?>
-      <p>To toggle fan lights with the physical power button, select <strong>Toggle fan lights</strong> in Settings &gt; Power Settings &gt; Power Button. That choice replaces the button's shutdown action.</p>
+      <p>Under Settings &gt; Power Settings &gt; Power Button, select <strong>Toggle fan lights</strong>. The button will no longer shut down the server.</p>
     <?php endif; ?>
   </section>
 </div>
@@ -331,4 +329,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=20"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=21"></script>

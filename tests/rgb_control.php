@@ -200,14 +200,14 @@ $var = ['csrf_token' => 'already-validated'];
 ob_start();
 include dirname(__DIR__) . '/HomeLab.page';
 $page = ob_get_clean();
-check(strpos($page, 'Orange applied to fan lights.') !== false, 'page accepts validated POST without token field');
+check(strpos($page, 'Orange applied.') !== false, 'page accepts validated POST without token field');
 check(strpos($page, 'Rainbow Flow') !== false, 'page lists animated effects');
 check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan colors') !== false &&
   strpos($page, 'Synchronized Wave') !== false && strpos($page, 'bottom_phase_steps') !== false &&
   strpos($page, 'Two-Color Loop') !== false && strpos($page, 'Comet Loop') !== false &&
   strpos($page, 'Two-Color Pulse') !== false && strpos($page, 'name="color_primary"') !== false &&
   strpos($page, 'name="color_secondary"') !== false && strpos($page, 'name="tail_variation"') !== false &&
-  strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit selected LED') !== false &&
+  strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit LED') !== false &&
   strpos($page, 'data-led-popover') !== false &&
   strpos($page, 'Night schedule') !== false && strpos($page, 'name="schedule_action"') !== false &&
   strpos($page, 'name="fade_pct"') !== false && strpos($page, 'Middle width:') !== false &&

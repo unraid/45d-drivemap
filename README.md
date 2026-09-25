@@ -68,7 +68,9 @@ On Unraid 7.4.0 or newer, the plugin adds **Toggle fan lights** to Settings >
 Power Settings > Power Button. Select that action to let a press switch the fan
 lights off or restore the last lit mode. The plugin does not change the power
 button's existing action automatically. A button press during night mode
-temporarily overrides the lights until the next schedule transition.
+temporarily overrides the lights until the next schedule transition. Repeat
+button events within three seconds are ignored because some boards dispatch
+one physical press twice.
 The control targets only the X4 addressable header. Other OpenRGB devices are
 left alone. Applying a color changes the controller now; persistence across a
 power cycle has not been verified.

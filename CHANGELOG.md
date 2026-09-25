@@ -14,6 +14,7 @@
 - Added per-fan skipped LED and separate middle color controls for Outer Loop, Two-Color Loop, and Comet Loop.
 - Added a local-time night schedule that turns fan lights off and restores the saved daytime mode.
 - Added a selectable fan-light toggle action through Unraid 7.4's power-button plugin hook.
+- Debounced duplicate physical power-button events so one press leaves the lights in the selected state.
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed

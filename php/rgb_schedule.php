@@ -189,7 +189,7 @@ function homelab_schedule_tick($force = false, $timestamp = null, $apply = null)
   }
 }
 
-function homelab_power_toggle($apply = null)
+function homelab_power_toggle($apply = null, $timestamp = null)
 {
   $paths = homelab_schedule_paths();
   if (!is_dir(dirname($paths['lock'])) && !mkdir(dirname($paths['lock']), 0700, true)) {
@@ -201,6 +201,13 @@ function homelab_power_toggle($apply = null)
   }
   try {
     $state = json_decode((string) @file_get_contents($paths['power']), true);
+    $now = $timestamp ?? hrtime(true) / 1000000000;
+    // Some boards dispatch one physical press twice. Keep this inside the
+    // lock so a second handler waiting for OpenRGB cannot undo the first.
+    $last_press = $state['button_at'] ?? null;
+    if (is_numeric($last_press) && $now >= $last_press && $now - $last_press < 3) {
+      return ['ok' => true, 'error' => null];
+    }
     $schedule_state = json_decode((string) @file_get_contents($paths['state']), true);
     $off = ($state['off'] ?? (($schedule_state['phase'] ?? null) === 'night')) === true;
     if ($off) {
@@ -224,7 +231,7 @@ function homelab_power_toggle($apply = null)
     if (!$result['ok']) {
       return $result;
     }
-    if (!homelab_schedule_write($paths['power'], ['off' => !$off])) {
+    if (!homelab_schedule_write($paths['power'], ['off' => !$off, 'button_at' => $timestamp ?? hrtime(true) / 1000000000])) {
       return ['ok' => false, 'error' => 'Fan lights changed, but button state was not saved.'];
     }
     return ['ok' => true, 'error' => null];

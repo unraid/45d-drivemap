@@ -134,7 +134,7 @@ if (!$ready && $error === null) {
     </div>
     <div class="homelab-editor-grid">
     <div class="homelab-preview-column">
-      <div class="homelab-preview-toolbar"><strong>Preview</strong><button type="button" data-pause aria-pressed="false">Pause preview</button><label><input type="checkbox" data-numbers> LED numbers</label></div>
+      <div class="homelab-preview-toolbar"><strong>Preview</strong><button type="button" data-pause aria-pressed="false">Pause preview</button><label><input type="checkbox" data-numbers> LED numbers</label><label><input type="checkbox" data-mesh-view> Mesh view</label></div>
     <div class="homelab-preview-stage" data-stage>
       <canvas width="420" height="600" role="img" aria-label="Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color." tabindex="0"></canvas>
       <div class="homelab-led-popover" data-led-popover role="dialog" aria-label="Edit LED color" hidden>
@@ -315,6 +315,7 @@ if (!$ready && $error === null) {
   #homelab-rgb-preview .homelab-preview-toolbar > label:first-child { font-weight:600; }
   #homelab-rgb-preview .homelab-preview-stage { position:relative; width:min(100%,420px); margin:0 auto; }
   #homelab-rgb-preview .homelab-preview-stage.homelab-sideways { width:min(100%,600px); }
+  #homelab-rgb-preview .homelab-preview-stage.homelab-mesh-view::after { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle, transparent 1.5px, rgba(8,12,16,.72) 1.8px) 0 0 / 6px 6px; }
   #homelab-rgb-preview canvas { display:block; width:100%; height:auto; cursor:pointer; }
   #homelab-rgb-preview canvas:focus-visible { outline:2px solid #e28935; outline-offset:2px; }
   #homelab-rgb-preview .homelab-led-popover { position:absolute; z-index:5; width:200px; padding:.75rem; border:1px solid #9aa8b3; border-radius:8px; background:var(--background-color,#fff); color:inherit; box-shadow:0 8px 24px rgba(0,0,0,.2); }
@@ -334,4 +335,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=30"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=31"></script>

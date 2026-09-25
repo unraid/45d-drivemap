@@ -64,6 +64,8 @@ rainbow palettes. Animated streams run at 15 frames per second. Static custom
 palettes run at 5 frames per second. Applying
 any global option stops the stream and returns control to OpenRGB. Fan speed is
 unaffected.
+Select Mesh view above the preview to see softened light through a simulated
+case mesh. This changes only the preview, not the fan lights.
 Outer Loop, Two-Color Loop, and Comet Loop also have a Virtual gap control.
 It adds zero to three unlit timing steps at each transition between fans;
 the default is one. These steps are shown as faint rings in the preview and

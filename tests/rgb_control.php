@@ -286,6 +286,7 @@ check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan co
   strpos($page, 'name="color_secondary"') !== false && strpos($page, 'name="tail_variation"') !== false &&
   strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit LED') !== false &&
   strpos($page, 'data-led-popover') !== false &&
+  strpos($page, 'data-mesh-view') !== false &&
   strpos($page, 'Night schedule') !== false && strpos($page, 'name="schedule_action"') !== false &&
   strpos($page, 'name="fade_pct"') !== false && strpos($page, 'Middle width:') !== false &&
   strpos($page, 'name="skipped_leds" min="0" max="6" step="2"') !== false &&

@@ -31,6 +31,7 @@
   const secondaryLabel = root.querySelector('[data-secondary-label]');
   const pause = root.querySelector('[data-pause]');
   const numbers = root.querySelector('[data-numbers]');
+  const meshView = root.querySelector('[data-mesh-view]');
   const description = root.querySelector('[data-description]');
   const reset = root.querySelector('[data-reset]');
   const editor = root.querySelector('[data-custom-editor]');
@@ -313,6 +314,16 @@
     }
   }
 
+  function updatePreviewSurface() {
+    const halloween = mode.value === 'halloween-eyes';
+    canvas.setAttribute('aria-label', (halloween
+      ? 'Two fan eyes shown side by side. Top and bottom LEDs fade to black, then reopen.'
+      : 'Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color.') +
+      (meshView.checked ? ' Approximate view through case mesh.' : ''));
+    stage.classList.toggle('homelab-sideways', halloween);
+    stage.classList.toggle('homelab-mesh-view', meshView.checked);
+  }
+
   function updateMode() {
     const custom = mode.value === 'custom-leds';
     const separate = mode.value === 'separate';
@@ -340,10 +351,7 @@
     tuningControls.hidden = !streamed;
     canvas.width = halloween ? 600 : 420;
     canvas.height = halloween ? 420 : 600;
-    canvas.setAttribute('aria-label', halloween
-      ? 'Two fan eyes shown side by side. Top and bottom LEDs fade to black, then reopen.'
-      : 'Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color.');
-    stage.classList.toggle('homelab-sideways', halloween);
+    updatePreviewSurface();
     for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;
     for (const control of root.querySelectorAll('[data-comet-only]')) control.hidden = mode.value !== 'comet-loop';
     for (const control of root.querySelectorAll('[data-eye-only]')) control.hidden = !halloween;
@@ -407,10 +415,22 @@
       const ledY = y - Math.sin(angle) * 47;
       const channels = displayedColors[index];
       const lit = channels.some((value) => value >= 25) ? `rgb(${channels.join(',')})` : null;
-      context.shadowBlur = lit ? 20 : 0;
-      context.shadowColor = lit || 'transparent';
-      circle(ledX, ledY, 13, lit || palette.off, palette.border);
-      context.shadowBlur = 0;
+      if (meshView.checked) {
+        if (channels.some((value) => value > 0)) {
+          const glow = context.createRadialGradient(ledX, ledY, 0, ledX, ledY, 34);
+          const rgb = channels.join(',');
+          glow.addColorStop(0, `rgba(${rgb},.95)`);
+          glow.addColorStop(0.3, `rgba(${rgb},.55)`);
+          glow.addColorStop(1, `rgba(${rgb},0)`);
+          context.fillStyle = glow;
+          context.fillRect(ledX - 34, ledY - 34, 68, 68);
+        }
+      } else {
+        context.shadowBlur = lit ? 20 : 0;
+        context.shadowColor = lit || 'transparent';
+        circle(ledX, ledY, 13, lit || palette.off, palette.border);
+        context.shadowBlur = 0;
+      }
       if (mode.value === 'custom-leds' && Number(ledIndex.value) === index) {
         circle(ledX, ledY, 17, null, palette.text);
       }
@@ -432,10 +452,16 @@
 
   function draw() {
     const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const palette = dark
+    const palette = meshView.checked
+      ? { body: '#161c21', surface: '#101518', border: '#303a42', off: '#151b20', text: '#b8c4cb' }
+      : dark
       ? { body: '#25313b', surface: '#111b23', border: '#5a6c78', off: '#3b4a55', text: '#e5edf3' }
       : { body: '#dde3e8', surface: '#f7f9fa', border: '#798b99', off: '#aab6c0', text: '#25313b' };
     context.clearRect(0, 0, canvas.width, canvas.height);
+    if (meshView.checked) {
+      context.fillStyle = '#10161a';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
     if (mode.value === 'halloween-eyes') {
       context.save();
       context.translate(600, 0);
@@ -574,6 +600,7 @@
     pause.setAttribute('aria-pressed', String(!running));
   });
   numbers.addEventListener('change', draw);
+  meshView.addEventListener('change', () => { updatePreviewSurface(); draw(); });
   if (!running) pause.textContent = 'Play preview';
   updateValues();
   savedColors.value = JSON.stringify(customColors);

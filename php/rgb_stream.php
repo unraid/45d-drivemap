@@ -203,23 +203,26 @@ function homelab_stream_palette_color($hue, $tuning)
   return homelab_stream_color_wheel($hue);
 }
 
-function homelab_eye_opening($elapsed, $period)
+function homelab_eye_closure($elapsed, $period)
 {
   $cycle = (int) floor($elapsed / $period);
   $time = fmod($elapsed, $period);
-  $duration = min(0.55, $period * 0.2);
-  $first = $period * 0.5;
-  $starts = [$first];
+  $duration = min(1.8, $period * 0.32);
+  $first = $period * 0.45;
+  $blinks = [[$first, $duration]];
   if ($cycle % 4 === 0) {
-    $starts[] = $first + $duration + min(0.16, $period * 0.05);
+    $blinks[] = [$first + $duration + min(0.16, $period * 0.05),
+      min(0.6, $period * 0.12)];
   }
-  $blink = 0;
-  foreach ($starts as $start) {
-    if ($time >= $start && $time <= $start + $duration) {
-      $blink = max($blink, pow(sin(M_PI * ($time - $start) / $duration), 2));
+  $closure = 0;
+  foreach ($blinks as [$start, $length]) {
+    if ($time >= $start && $time <= $start + $length) {
+      $progress = ($time - $start) / $length;
+      $closure = max($closure, $progress < 0.4 ? $progress / 0.4 :
+        ($progress <= 0.6 ? 1 : (1 - $progress) / 0.4));
     }
   }
-  return 1 - $blink;
+  return $closure;
 }
 
 function homelab_stream_validate_led_colors($colors)
@@ -277,21 +280,20 @@ function homelab_stream_leds($config, $elapsed = 0)
   $bottom_offset = $tuning['bottom_phase_steps'] * 128 * $cycles;
   $effect = $config['effect'] ?? null;
   if ($effect === 'halloween-eyes') {
-    $opening = homelab_eye_opening($elapsed, $tuning['period_seconds']);
+    $closure = homelab_eye_closure($elapsed, $tuning['period_seconds']);
     $leds = [];
     for ($i = 0; $i < 24; $i++) {
       $local = $i % HOMELAB_STREAM_FAN_LEDS;
       $angle = deg2rad(255 - 30 * $local);
       $edge = abs(cos($angle));
-      $visibility = max(0, min(1, (0.05 + 1.2 * $opening - $edge) / 0.18));
-      $visibility = $visibility * $visibility * (3 - 2 * $visibility);
+      $visible = $edge < 0.4 || ($edge < 0.85 && $closure < 0.6) || $closure < 0.2;
       $gaze = $i < HOMELAB_STREAM_FAN_LEDS ? 0 : 6;
       $distance = abs($local - $gaze);
       $distance = min($distance, HOMELAB_STREAM_FAN_LEDS - $distance);
       $accent = max(0, 0.8 - 0.5 * $distance);
       $color = homelab_stream_mix($tuning['color_primary'], $tuning['color_secondary'], $accent);
       $leds[] = homelab_stream_brightness(
-        homelab_stream_level($color, $visibility), $tuning['brightness_pct']);
+        $visible ? $color : '000000', $tuning['brightness_pct']);
     }
     return $leds;
   }

@@ -89,7 +89,7 @@
   }
   const descriptions = {
     'custom-leds': 'Select an LED in the preview to change its color.',
-    'halloween-eyes': 'Each fan is one eye. The preview shows the case on its side.',
+    'halloween-eyes': 'Each fan is one eye. Outer LEDs turn off first, leaving a narrow slit.',
     global: 'Animated previews are approximate.'
   };
   let customColors;
@@ -144,21 +144,25 @@
     return colorWheel(hue, brightness);
   }
 
-  function eyeOpening() {
+  function eyeClosure() {
     const period = Number(fields.period_seconds.value);
     const cycle = Math.floor(elapsed / period);
     const time = elapsed % period;
-    const duration = Math.min(0.55, period * 0.2);
-    const first = period * 0.5;
-    const starts = cycle % 4 === 0
-      ? [first, first + duration + Math.min(0.16, period * 0.05)] : [first];
-    let blink = 0;
-    for (const start of starts) {
-      if (time >= start && time <= start + duration) {
-        blink = Math.max(blink, Math.sin(Math.PI * (time - start) / duration) ** 2);
+    const duration = Math.min(1.8, period * 0.32);
+    const first = period * 0.45;
+    const blinks = [[first, duration]];
+    if (cycle % 4 === 0) {
+      blinks.push([first + duration + Math.min(0.16, period * 0.05), Math.min(0.6, period * 0.12)]);
+    }
+    let closure = 0;
+    for (const [start, length] of blinks) {
+      if (time >= start && time <= start + length) {
+        const progress = (time - start) / length;
+        closure = Math.max(closure, progress < 0.4 ? progress / 0.4 :
+          (progress <= 0.6 ? 1 : (1 - progress) / 0.4));
       }
     }
-    return 1 - blink;
+    return closure;
   }
 
   function targetColor(index) {
@@ -185,13 +189,13 @@
     if (mode.value === 'halloween-eyes') {
       const local = index % 12;
       const edge = Math.abs(Math.cos(ledAngle(local)));
-      const mask = Math.max(0, Math.min(1, (0.05 + 1.2 * eyeOpening() - edge) / 0.18));
-      const visibility = mask * mask * (3 - 2 * mask);
+      const closure = eyeClosure();
+      const visible = edge < 0.4 || (edge < 0.85 && closure < 0.6) || closure < 0.2;
       const gaze = index < 12 ? 0 : 6;
       const distance = Math.abs(local - gaze);
       const accent = Math.max(0, 0.8 - 0.5 * Math.min(distance, 12 - distance));
       const color = mixColor(chosenColor('color_primary'), chosenColor('color_secondary'), accent);
-      return scaleColor(color, visibility * brightness / 100);
+      return visible ? scaleColor(color, brightness / 100) : [0, 0, 0];
     }
     const cycles = Number(fields.rainbow_cycles.value);
     const direction = fields.direction.value === 'counterclockwise' ? -1 : 1;
@@ -248,7 +252,7 @@
   }
 
   function updateFrameColors(force = false) {
-    const fade = force ? 0 : Number(fields.fade_pct.value);
+    const fade = force || mode.value === 'halloween-eyes' ? 0 : Number(fields.fade_pct.value);
     displayedColors = displayedColors.map((old, index) => {
       const target = targetColor(index);
       return target.map((value, channel) => {
@@ -362,7 +366,9 @@
     for (const label of root.querySelectorAll('[data-rainbow-only]')) {
       label.hidden = !rainbow || fields.palette_mode.value !== 'rainbow';
     }
-    for (const label of root.querySelectorAll('[data-stream-only]')) label.hidden = !streamed;
+    for (const label of root.querySelectorAll('[data-stream-only]')) {
+      label.hidden = !streamed || (halloween && label.hasAttribute('data-smoothing-only'));
+    }
     description.textContent = descriptions[mode.value] || '';
     description.hidden = !description.textContent;
     elapsed = 0;

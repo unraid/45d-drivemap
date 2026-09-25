@@ -221,7 +221,7 @@ if (!$ready && $error === null) {
           <?php endforeach; ?>
         </select>
       </label>
-      <label for="homelab-fade" data-stream-only>Smoothing: <output data-value-for="fade_pct"><?=$tuning['fade_pct']?>%</output>
+      <label for="homelab-fade" data-stream-only data-smoothing-only>Smoothing: <output data-value-for="fade_pct"><?=$tuning['fade_pct']?>%</output>
         <input id="homelab-fade" type="range" name="fade_pct" min="0" max="80" step="5" value="<?=$tuning['fade_pct']?>">
       </label>
       <label for="homelab-middle-width" data-loop-only>Middle width: <output data-value-for="skipped_leds"><?=$tuning['skipped_leds']?> LEDs per fan</output>
@@ -330,4 +330,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=26"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=27"></script>

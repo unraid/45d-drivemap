@@ -27,6 +27,7 @@ cp -a \
   "${ROOT_DIR}/plugin.cfg" \
   "${ROOT_DIR}/assets" \
   "${ROOT_DIR}/php" \
+  "${ROOT_DIR}/include" \
   "${ROOT_DIR}/scripts" \
   "${TARGET_DIR}/"
 

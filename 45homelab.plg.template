@@ -54,6 +54,12 @@ fi
 
 chmod +x "${PLUGIN_DIR}/scripts/45d-generate-map" || true
 chmod +x "${PLUGIN_DIR}/scripts/45d-generate-server-info" || true
+if [ -d /etc/acpi/powerbutton.d ]; then
+  install -m 0755 "${PLUGIN_DIR}/scripts/45d-rgb-powerbutton" /etc/acpi/powerbutton.d/45homelab-lights
+fi
+if [ -f "/boot/config/plugins/${MAINNAME}/rgb-schedule.json" ]; then
+  /usr/bin/php "${PLUGIN_DIR}/scripts/45d-rgb-schedule.php" --install || true
+fi
 ]]>
     </INLINE>
   </FILE>
@@ -67,6 +73,16 @@ MAINNAME="45homelab"
 PLUGIN_DIR="/usr/local/emhttp/plugins/${MAINNAME}"
 STATE_DIR="/var/local/45d"
 BOOT_DIR="/boot/config/plugins/${MAINNAME}"
+
+rm -f "${BOOT_DIR}/rgb.cron"
+if [ -f /boot/config/plugins/dynamix/dynamix.cfg ] &&
+   grep -q '^powerbutton="45homelab-lights"' /boot/config/plugins/dynamix/dynamix.cfg; then
+  sed -i 's/^powerbutton="45homelab-lights"/powerbutton="shutdown"/' /boot/config/plugins/dynamix/dynamix.cfg
+fi
+rm -f /etc/acpi/powerbutton.d/45homelab-lights
+if [ -x /usr/local/sbin/update_cron ]; then
+  /usr/local/sbin/update_cron || true
+fi
 
 if [ -f "${STATE_DIR}/rgb-stream.pid" ]; then
   RGB_PID=$(cat "${STATE_DIR}/rgb-stream.pid")

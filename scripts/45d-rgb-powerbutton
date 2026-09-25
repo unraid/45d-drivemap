@@ -1,0 +1,11 @@
+#!/usr/bin/php
+<?php
+require_once '/usr/local/emhttp/plugins/45homelab/php/rgb_schedule.php';
+
+$result = homelab_power_toggle();
+if (!$result['ok']) {
+  openlog('45homelab', LOG_PID, LOG_USER);
+  syslog(LOG_ERR, 'Power button fan lighting action failed: ' . $result['error']);
+  closelog();
+  exit(1);
+}

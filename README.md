@@ -54,6 +54,21 @@ rainbow palettes. Animated streams run at 15 frames per second. Static custom
 palettes run at 5 frames per second. Applying
 any global option stops the stream and returns control to OpenRGB. Fan speed is
 unaffected.
+Night schedule uses the server's local clock. Choose an off time and restore
+time in Settings > System Settings > 45HomeLab, then enable night mode. It turns
+fan lights off during that window and restores the last applied daytime mode.
+The schedule and daytime selection are saved under
+`/boot/config/plugins/45homelab/`; Unraid's plugin cron runs once per minute.
+Leave night mode disabled until the desired hours are selected. Applying a new
+lighting mode at night saves it for daytime and returns the lights to off.
+The schedule is reinstalled at plugin startup; reboot restoration has not yet
+been checked on hardware.
+
+On Unraid 7.4.0 or newer, the plugin adds **Toggle fan lights** to Settings >
+Power Settings > Power Button. Select that action to let a press switch the fan
+lights off or restore the last lit mode. The plugin does not change the power
+button's existing action automatically. A button press during night mode
+temporarily overrides the lights until the next schedule transition.
 The control targets only the X4 addressable header. Other OpenRGB devices are
 left alone. Applying a color changes the controller now; persistence across a
 power cycle has not been verified.

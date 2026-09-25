@@ -5,9 +5,9 @@ Icon="lightbulb-o"
 Tag="cog"
 ---
 <?php
-$rgb_helper = '/usr/local/emhttp/plugins/45homelab/php/rgb_control.php';
+$rgb_helper = '/usr/local/emhttp/plugins/45homelab/php/rgb_schedule.php';
 if (!is_file($rgb_helper)) {
-  $rgb_helper = __DIR__ . '/php/rgb_control.php';
+  $rgb_helper = __DIR__ . '/php/rgb_schedule.php';
 }
 require_once $rgb_helper;
 
@@ -15,44 +15,77 @@ $message = null;
 $error = null;
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   // Unraid validates and removes csrf_token before rendering this page.
-  $action = $_POST['lighting_action'] ?? 'global';
-  if ($action === 'separate') {
-    $top = $_POST['top_color'] ?? '';
-    $bottom = $_POST['bottom_color'] ?? '';
-    $result = homelab_rgb_set_separate($top, $bottom);
-    $label = 'Separate fan colors';
-  } elseif (is_string($action) && isset(HOMELAB_STREAM_EFFECTS[$action])) {
-    $result = homelab_rgb_set_stream_effect($action, $_POST);
-    $label = HOMELAB_STREAM_EFFECTS[$action];
-  } elseif ($action === 'custom-leds') {
-    $result = homelab_rgb_set_custom($_POST['led_colors'] ?? null, $_POST);
-    $label = 'Custom LED colors';
-  } elseif ($action === 'global') {
-    $preset = $_POST['color'] ?? '';
-    $result = homelab_rgb_set($preset);
-    $label = homelab_rgb_label($preset);
+  if (($_POST['schedule_action'] ?? null) === 'save') {
+    $result = homelab_schedule_save($_POST);
+    if ($result['ok']) {
+      $message = 'Night schedule saved.';
+    } else {
+      $error = $result['error'];
+    }
   } else {
-    $result = ['ok' => false, 'error' => 'Choose a listed lighting option.'];
-  }
-  if ($result['ok']) {
-    $message = $label . ' applied to fan lights.';
-  } else {
-    $error = $result['error'];
+    $action = $_POST['lighting_action'] ?? 'global';
+    if ($action === 'separate') {
+      $top = $_POST['top_color'] ?? '';
+      $bottom = $_POST['bottom_color'] ?? '';
+      $result = homelab_rgb_set_separate($top, $bottom);
+      $label = 'Separate fan colors';
+    } elseif (is_string($action) && isset(HOMELAB_STREAM_EFFECTS[$action])) {
+      $result = homelab_rgb_set_stream_effect($action, $_POST);
+      $label = HOMELAB_STREAM_EFFECTS[$action];
+    } elseif ($action === 'custom-leds') {
+      $result = homelab_rgb_set_custom($_POST['led_colors'] ?? null, $_POST);
+      $label = 'Custom LED colors';
+    } elseif ($action === 'global') {
+      $preset = $_POST['color'] ?? '';
+      $result = homelab_rgb_set($preset);
+      $label = homelab_rgb_label($preset);
+    } else {
+      $result = ['ok' => false, 'error' => 'Choose a listed lighting option.'];
+    }
+    if ($result['ok']) {
+      if (!homelab_schedule_record_day($action, $_POST)) {
+        $error = 'Lighting applied, but the daytime setting could not be saved.';
+      } else {
+        $schedule = homelab_schedule_load();
+        if (homelab_schedule_is_night($schedule)) {
+          $night = homelab_schedule_tick(true);
+          if ($night['ok']) {
+            $message = 'Daytime lighting saved. Night mode remains active.';
+          } else {
+            $error = 'Daytime lighting saved, but night mode could not resume: ' . $night['error'];
+          }
+        } else {
+          $message = $label . ' applied to fan lights.';
+        }
+      }
+    } else {
+      $error = $result['error'];
+    }
   }
 }
-$streaming = homelab_stream_pid() !== null;
+$schedule = homelab_schedule_load();
+$day_selection = homelab_schedule_day_selection();
+$active_streaming = homelab_stream_pid() !== null;
+$streaming = $active_streaming;
 $selection = homelab_rgb_stream_selection();
 $stream_config = json_decode((string) @file_get_contents(homelab_stream_paths()['config']), true);
+if ($schedule['enabled'] && homelab_schedule_is_night($schedule) && is_array($day_selection)) {
+  $streaming = ($day_selection['kind'] ?? null) === 'stream';
+  if ($streaming) {
+    $stream_config = $day_selection['config'];
+  }
+}
 $preview_mode = $streaming && (isset(HOMELAB_STREAM_EFFECTS[$stream_config['effect'] ?? '']) ||
   ($stream_config['effect'] ?? null) === 'custom-leds')
   ? $stream_config['effect'] : ($streaming ? 'separate' : 'global');
+$global_preset = ($day_selection['kind'] ?? null) === 'global' ? $day_selection['preset'] : 'white';
 $custom_palette = homelab_rgb_custom_palette();
 try {
   $tuning = homelab_stream_tuning(is_array($stream_config) ? $stream_config : []);
 } catch (InvalidArgumentException $ignored) {
   $tuning = HOMELAB_STREAM_TUNING_DEFAULTS;
 }
-$detected = $streaming ? ['ok' => true, 'error' => null] : homelab_rgb_detect();
+$detected = $active_streaming ? ['ok' => true, 'error' => null] : homelab_rgb_detect();
 $ready = $detected['ok'];
 if (!$ready && $error === null) {
   $error = $detected['error'];
@@ -100,7 +133,7 @@ if (!$ready && $error === null) {
         <select id="homelab-fan-color" name="color">
           <optgroup label="Solid colors">
             <?php foreach (HOMELAB_RGB_PRESETS as $value => $preset): ?>
-              <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === 'white' ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
+              <option value="<?=htmlspecialchars($value, ENT_QUOTES, 'UTF-8')?>" <?=$value === $global_preset ? 'selected' : ''?>><?=htmlspecialchars($preset['label'], ENT_QUOTES, 'UTF-8')?></option>
             <?php endforeach; ?>
           </optgroup>
           <optgroup label="Animated effects">
@@ -213,9 +246,39 @@ if (!$ready && $error === null) {
       <input type="submit" value="Apply lighting" <?=$ready ? '' : 'disabled'?>>
     </div>
   </form>
+  <section class="homelab-night-card" aria-labelledby="homelab-night-heading">
+    <h3 id="homelab-night-heading">Night schedule</h3>
+    <p>Turn fan lights off at your chosen time, then restore the last applied daytime lighting. Times use this server's local clock (<?=htmlspecialchars(date('T'), ENT_QUOTES, 'UTF-8')?>).</p>
+    <form method="post" class="homelab-night-form">
+      <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
+      <input type="hidden" name="schedule_action" value="save">
+      <label for="homelab-night-enabled">Night mode
+        <select id="homelab-night-enabled" name="enabled">
+          <option value="0" <?=$schedule['enabled'] ? '' : 'selected'?>>Off</option>
+          <option value="1" <?=$schedule['enabled'] ? 'selected' : ''?>>On</option>
+        </select>
+      </label>
+      <label for="homelab-night-start">Lights off at
+        <input id="homelab-night-start" type="time" name="start" value="<?=htmlspecialchars($schedule['start'], ENT_QUOTES, 'UTF-8')?>">
+      </label>
+      <label for="homelab-night-end">Restore at
+        <input id="homelab-night-end" type="time" name="end" value="<?=htmlspecialchars($schedule['end'], ENT_QUOTES, 'UTF-8')?>">
+      </label>
+      <button type="submit">Save schedule</button>
+    </form>
+    <?php if (is_file('/etc/acpi/powerbutton.d/README')): ?>
+      <p>To toggle fan lights with the physical power button, select <strong>Toggle fan lights</strong> in Settings &gt; Power Settings &gt; Power Button. That choice replaces the button's shutdown action.</p>
+    <?php endif; ?>
+  </section>
 </div>
 <style>
   .homelab-lighting-page { max-width:72rem; }
+  .homelab-night-card { margin-top:1.5rem; padding:1rem; border:1px solid #b8c1c8; border-radius:8px; background:rgba(140,150,160,.06); }
+  .homelab-night-card h3 { margin:0 0 .5rem; }
+  .homelab-night-card p { margin:.5rem 0 1rem; }
+  .homelab-night-form { display:flex; align-items:end; flex-wrap:wrap; gap:1rem; }
+  .homelab-night-form label { display:flex; flex-direction:column; gap:.25rem; font-weight:600; }
+  .homelab-night-form button { align-self:end; }
   #homelab-rgb-preview { padding:1rem; border:1px solid #b8c1c8; border-radius:8px; background:rgba(140,150,160,.06); }
   #homelab-rgb-preview .homelab-mode-row { display:flex; align-items:center; gap:1rem; padding-bottom:1rem; border-bottom:1px solid #b8c1c8; }
   #homelab-rgb-preview .homelab-mode-row label { font-weight:600; }

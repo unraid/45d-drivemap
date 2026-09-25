@@ -3,6 +3,8 @@ require_once dirname(__DIR__) . '/php/rgb_control.php';
 
 $dir = sys_get_temp_dir() . '/45homelab-rgb-' . getmypid();
 mkdir($dir, 0700);
+putenv('HOMELAB_RGB_CONFIG_DIR=' . $dir);
+putenv('HOMELAB_RGB_RUNTIME_DIR=' . $dir);
 $binary = $dir . '/openrgb';
 $log = $dir . '/args';
 $fixture = $dir . '/devices';
@@ -189,6 +191,7 @@ check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan co
   strpos($page, 'name="color_secondary"') !== false && strpos($page, 'name="tail_variation"') !== false &&
   strpos($page, 'Split orange / blue') !== false && strpos($page, 'Edit selected LED') !== false &&
   strpos($page, 'data-led-popover') !== false &&
+  strpos($page, 'Night schedule') !== false && strpos($page, 'name="schedule_action"') !== false &&
   strpos($page, 'name="fade_pct"') !== false && strpos($page, 'name="skipped_leds"') !== false &&
   strpos($page, 'name="middle_enabled"') !== false && strpos($page, 'name="middle_color"') !== false,
   'page offers tuned animations and custom LED painting');
@@ -201,5 +204,10 @@ check(!homelab_rgb_detect($dir . '/missing')['ok'], 'reports missing runtime');
 unlink($binary);
 unlink($log);
 unlink($fixture);
+@unlink($dir . '/rgb-day.json');
+@unlink($dir . '/rgb-last-on.json');
+@unlink($dir . '/rgb-power-state.json');
 rmdir($dir);
+putenv('HOMELAB_RGB_CONFIG_DIR');
+putenv('HOMELAB_RGB_RUNTIME_DIR');
 echo "RGB control tests passed\n";

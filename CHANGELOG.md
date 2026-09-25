@@ -19,6 +19,7 @@
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed
+- Replaced the skipped LED slider with balanced middle widths of 0, 2, 4, or 6 LEDs per fan; older odd settings round down, and the default is 4.
 - Renamed the Unraid plugin to 45HomeLab and moved its settings under System Settings.
 - Preserved drive-map overrides from existing 45d-drivemap installations during installation.
 - Tuned the Orange preset to look less yellow on the X4 fans.

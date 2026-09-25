@@ -219,9 +219,9 @@ if (!$ready && $error === null) {
       <label for="homelab-fade" data-stream-only>Fade: <output data-value-for="fade_pct"><?=$tuning['fade_pct']?>%</output>
         <input id="homelab-fade" type="range" name="fade_pct" min="0" max="80" step="5" value="<?=$tuning['fade_pct']?>">
       </label>
-      <label for="homelab-skipped-leds" data-loop-only>Skipped LEDs: <output data-value-for="skipped_leds"><?=$tuning['skipped_leds']?> per fan</output>
-        <input id="homelab-skipped-leds" type="range" name="skipped_leds" min="0" max="6" step="1" value="<?=$tuning['skipped_leds']?>" aria-describedby="homelab-skipped-help">
-        <small id="homelab-skipped-help">Sets center area facing the gap. Even counts balance both sides.</small>
+      <label for="homelab-middle-width" data-loop-only>Middle width: <output data-value-for="skipped_leds"><?=$tuning['skipped_leds']?> LEDs per fan</output>
+        <input id="homelab-middle-width" type="range" name="skipped_leds" min="0" max="6" step="2" value="<?=$tuning['skipped_leds']?>" aria-describedby="homelab-middle-width-help">
+        <small id="homelab-middle-width-help">Reserves a balanced inner arc on each fan: 0, 2, 4, or 6 LEDs. Choose its color below.</small>
       </label>
       <label for="homelab-virtual-gap" data-loop-only>Virtual gap: <output data-value-for="virtual_gap_steps"><?=$tuning['virtual_gap_steps']?> per crossing</output>
         <input id="homelab-virtual-gap" type="range" name="virtual_gap_steps" min="0" max="3" step="1" value="<?=$tuning['virtual_gap_steps']?>" aria-describedby="homelab-virtual-gap-help">
@@ -318,4 +318,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=17"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=18"></script>

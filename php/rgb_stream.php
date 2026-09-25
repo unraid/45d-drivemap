@@ -4,7 +4,7 @@
 const HOMELAB_STREAM_LED_COUNT = 303;
 const HOMELAB_STREAM_FAN_LEDS = 12;
 // Clockwise around the pair: top left to top right, then bottom right to left.
-const HOMELAB_PINWHEEL_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 20, 21, 22, 23, 12, 13, 14, 15];
+const HOMELAB_PINWHEEL_ORDER = [2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 12, 13, 14, 15];
 const HOMELAB_TOP_SKIP_PRIORITY = [11, 0, 10, 1, 9, 2];
 const HOMELAB_BOTTOM_SKIP_PRIORITY = [17, 18, 16, 19, 15, 20];
 const HOMELAB_STREAM_EFFECTS = [
@@ -27,7 +27,7 @@ const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'color_secondary' => '0000FF',
   'tail_leds' => 6,
   'tail_variation' => 50,
-  'skipped_leds' => 3,
+  'skipped_leds' => 4,
   'virtual_gap_steps' => 1,
   'middle_enabled' => false,
   'middle_color' => 'FFFFFF',
@@ -70,7 +70,8 @@ function homelab_stream_tuning($input)
         (int) $value < $min || (int) $value > $max) {
       throw new InvalidArgumentException('Choose valid lighting settings.');
     }
-    $settings[$key] = (int) $value;
+    // Older saved settings allowed odd widths, which put one extra LED on one side.
+    $settings[$key] = $key === 'skipped_leds' ? (int) $value - (int) $value % 2 : (int) $value;
   }
   if (array_key_exists('direction', $input)) {
     if (!in_array($input['direction'], ['clockwise', 'counterclockwise'], true)) {

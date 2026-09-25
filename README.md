@@ -39,10 +39,10 @@ Two-Color Pulse, and custom colors for all 24 LEDs. Select Custom LEDs, then sel
 color editor, or fill either fan. The orange/blue split button provides a
 starting palette. Apply the lighting to send it to the fans. The palette is saved at
 `/boot/config/plugins/45homelab/rgb-custom.json`.
-Outer Loop, Two-Color Loop, and Comet Loop skip three inward-facing LEDs per
-fan by default. The Skipped LEDs control sets this from zero to six per fan and
-updates the preview before applying. Middle LEDs can stay off or use a separate
-color across the skipped positions. Streamed patterns have two color pickers.
+Outer Loop, Two-Color Loop, and Comet Loop reserve four inward-facing LEDs per
+fan by default. The Middle width control offers zero, two, four, or six LEDs per
+fan and updates the preview before applying. Middle LEDs can stay off or use a
+separate color. Streamed patterns have two color pickers.
 Rainbow patterns can use
 their full rainbow or blend the two chosen colors. Comet also offers tail length
 and tail variation; variation changes individual tail LEDs over time while the
@@ -58,8 +58,9 @@ Outer Loop, Two-Color Loop, and Comet Loop also have a Virtual gap control.
 It adds zero to three unlit timing steps at each transition between fans;
 the default is one. These steps are shown as faint rings in the preview and
 do not address or turn off any physical LED.
-The mounted X4 fans place the gap between physical LEDs. Even skipped-LED counts
-balance the middle area on both sides; odd counts favor one side by one LED.
+The mounted X4 fans place the gap between physical LEDs. The even width choices
+balance the middle area on both sides. Older odd widths round down to the next
+even choice when loaded.
 Night schedule uses the server's local clock. Choose an off time and restore
 time in Settings > System Settings > 45HomeLab, then enable night mode. It turns
 fan lights off during that window and restores the last applied daytime mode.

@@ -38,7 +38,7 @@
   const defaults = {
     period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
     brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1,
-    fade_pct: 35, tail_leds: 6, tail_variation: 50, skipped_leds: 3, virtual_gap_steps: 1,
+    fade_pct: 35, tail_leds: 6, tail_variation: 50, skipped_leds: 4, virtual_gap_steps: 1,
     middle_enabled: '0', middle_color: '#ffffff'
   };
   const patternDefaults = {
@@ -251,7 +251,7 @@
     const units = {
       period_seconds: ' s', hue_degrees: ' deg', brightness_pct: '%',
       bottom_phase_steps: ' LEDs', fade_pct: '%', tail_leds: ' LEDs',
-      tail_variation: '%', skipped_leds: ' per fan', virtual_gap_steps: ' per crossing'
+      tail_variation: '%', skipped_leds: ' LEDs per fan', virtual_gap_steps: ' per crossing'
     };
     for (const [name, unit] of Object.entries(units)) {
       const value = `${fields[name].value}${unit}`;

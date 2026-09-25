@@ -185,15 +185,19 @@
         color = mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), ratio);
       } else {
         const distance = ((position % length) + length) % length;
-        const tailLength = Number(fields.tail_leds.value);
-        let level = Math.pow(Math.max(0, 1 - distance / tailLength), 0.7);
-        if (distance >= 1 && level > 0) {
-          const tick = Math.floor(elapsed * 5);
-          const variation = ((index * 73 + tick * 151 + 37) % 101) / 100;
-          level *= 1 - Number(fields.tail_variation.value) / 100 * (0.25 * (1 - variation));
+        if (distance > length - 1) {
+          color = scaleColor(chosenColor('color_primary'), 1 - (length - distance));
+        } else {
+          const tailLength = Number(fields.tail_leds.value);
+          let level = Math.pow(Math.max(0, 1 - distance / tailLength), 0.7);
+          if (distance >= 1 && level > 0) {
+            const offset = ((index * 73 + 37) % 101) / 101;
+            const variation = 0.5 + 0.5 * Math.sin(2 * Math.PI * (elapsed * 0.7 + offset));
+            level *= 1 - Number(fields.tail_variation.value) / 100 * (0.25 * (1 - variation));
+          }
+          const head = Math.max(0, 1 - distance / (tailLength - 1));
+          color = scaleColor(mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), head), level);
         }
-        const head = Math.max(0, 1 - distance / (tailLength - 1));
-        color = scaleColor(mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), head), level);
       }
       return scaleColor(color, brightness / 100);
     }

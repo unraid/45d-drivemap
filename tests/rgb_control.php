@@ -118,6 +118,23 @@ check($comet === homelab_stream_leds(['effect' => 'comet-loop'], 0) &&
   $comet[HOMELAB_PINWHEEL_ORDER[2]] !==
     homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 0)[HOMELAB_PINWHEEL_ORDER[2]],
   'comet tail variation is repeatable for a frame and changes tail brightness');
+$head_levels = [];
+$next_levels = [];
+for ($frame = 0; $frame <= 5; $frame++) {
+  $leds = homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], $frame / 15);
+  $head_levels[] = hexdec(substr($leds[HOMELAB_PINWHEEL_ORDER[0]], 0, 2));
+  $next_levels[] = hexdec(substr($leds[HOMELAB_PINWHEEL_ORDER[1]], 0, 2));
+}
+check($head_levels === [255, 204, 153, 102, 51, 0] &&
+  $next_levels[0] < $next_levels[1] && $next_levels[1] < $next_levels[2] &&
+  $next_levels[2] < $next_levels[3] && $next_levels[3] < $next_levels[4] &&
+  $next_levels[4] < $next_levels[5],
+  'comet head hands off smoothly across consecutive 15 FPS frames');
+$before_variation_tick = homelab_stream_leds(['effect' => 'comet-loop'], 0.1999)[HOMELAB_PINWHEEL_ORDER[2]];
+$after_variation_tick = homelab_stream_leds(['effect' => 'comet-loop'], 0.2001)[HOMELAB_PINWHEEL_ORDER[2]];
+check(max(array_map(fn($offset) => abs(hexdec(substr($before_variation_tick, $offset, 2)) -
+  hexdec(substr($after_variation_tick, $offset, 2))), [0, 2, 4])) <= 2,
+  'comet tail variation changes continuously');
 check(homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 0) ===
   homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 6),
   'comet completes a loop when variation is disabled');

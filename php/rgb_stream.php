@@ -285,15 +285,20 @@ function homelab_stream_leds($config, $elapsed = 0)
         $color = homelab_stream_mix($tuning['color_secondary'], $tuning['color_primary'], $ratio);
       } else {
         $distance = fmod(fmod($position, $count) + $count, $count);
-        $level = pow(max(0, 1 - $distance / $tuning['tail_leds']), 0.7);
-        if ($distance >= 1 && $level > 0) {
-          $tick = (int) floor($elapsed * 5);
-          $variation = (($index * 73 + $tick * 151 + 37) % 101) / 100;
-          $level *= 1 - $tuning['tail_variation'] / 100 * (0.25 * (1 - $variation));
+        if ($distance > $count - 1) {
+          // Keep the departing head LED lit until the next LED takes over.
+          $color = homelab_stream_level($tuning['color_primary'], 1 - ($count - $distance));
+        } else {
+          $level = pow(max(0, 1 - $distance / $tuning['tail_leds']), 0.7);
+          if ($distance >= 1 && $level > 0) {
+            $offset = (($index * 73 + 37) % 101) / 101;
+            $variation = 0.5 + 0.5 * sin(2 * M_PI * ($elapsed * 0.7 + $offset));
+            $level *= 1 - $tuning['tail_variation'] / 100 * (0.25 * (1 - $variation));
+          }
+          $head = max(0, 1 - $distance / ($tuning['tail_leds'] - 1));
+          $color = homelab_stream_level(homelab_stream_mix(
+            $tuning['color_secondary'], $tuning['color_primary'], $head), $level);
         }
-        $head = max(0, 1 - $distance / ($tuning['tail_leds'] - 1));
-        $color = homelab_stream_level(homelab_stream_mix(
-          $tuning['color_secondary'], $tuning['color_primary'], $head), $level);
       }
       $leds[$index] = homelab_stream_brightness($color, $tuning['brightness_pct']);
     }

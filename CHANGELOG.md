@@ -21,6 +21,7 @@
 ### Changed
 - Set editable pattern colors to the calibrated dark orange and blue palette, including Comet and separate fan colors. Rainbow patterns keep their full spectrum by default.
 - Blend Comet color across the tail and keep trailing LEDs brighter so the head and tail read as one moving pattern.
+- Smooth Comet motion between LEDs and replace stepped tail flicker with continuous variation at the existing 15 frames per second.
 - Shortened lighting editor labels and help text. Removed repeated setup and hardware details from the settings page.
 - Shared the two color pickers across separate fan colors and animated patterns, with labels and controls matched to each lighting mode.
 - Replaced the skipped LED slider with balanced middle widths of 0, 2, 4, or 6 LEDs per fan; older odd settings round down, and the default is 4.

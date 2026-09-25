@@ -89,7 +89,7 @@
   }
   const descriptions = {
     'custom-leds': 'Select an LED in the preview to change its color.',
-    'halloween-eyes': 'Each fan narrows to a vertical slit, closes, then opens.',
+    'halloween-eyes': 'The top and bottom LEDs fade as each eye closes, then opens.',
     global: 'Animated previews are approximate.'
   };
   let customColors;
@@ -148,18 +148,20 @@
     const period = Number(fields.period_seconds.value);
     const cycle = Math.floor(elapsed / period);
     const time = elapsed % period;
-    const duration = Math.min(1.8, period * 0.32);
-    const first = period * 0.45;
+    const variation = ((cycle + 1) * 73 + (cycle + 1) * (cycle + 1) * 29 + 13) % 101;
+    const duration = Math.min(2.25, period * 0.34);
+    const first = period * (0.27 + (variation % 13) / 100);
     const blinks = [[first, duration]];
-    if (cycle % 4 === 0) {
-      blinks.push([first + duration + Math.min(0.16, period * 0.05), Math.min(0.6, period * 0.12)]);
+    if (variation % 4 === 1) {
+      blinks.push([first + duration + Math.min(0.15, period * 0.04), Math.min(0.65, period * 0.12)]);
     }
     let closure = 0;
     for (const [start, length] of blinks) {
       if (time >= start && time <= start + length) {
         const progress = (time - start) / length;
-        closure = Math.max(closure, progress < 0.4 ? progress / 0.4 :
-          (progress <= 0.6 ? 1 : (1 - progress) / 0.4));
+        const ramp = Math.max(0, Math.min(1, progress < 0.42 ? progress / 0.42 :
+          (progress <= 0.58 ? 1 : (1 - progress) / 0.42)));
+        closure = Math.max(closure, ramp * ramp * (3 - 2 * ramp));
       }
     }
     return closure;
@@ -188,9 +190,9 @@
     }
     if (mode.value === 'halloween-eyes') {
       const local = index % 12;
-      const edge = Math.abs(Math.sin(ledAngle(local)));
+      const edge = Math.abs(Math.cos(ledAngle(local) + 7.5 * Math.PI / 180));
       const closure = eyeClosure();
-      const mask = Math.max(0, Math.min(1, (0.05 + 1.2 * (1 - closure) - edge) / 0.18));
+      const mask = Math.max(0, Math.min(1, (0.02 + 1.35 * (1 - closure) - edge) / 0.3));
       const visibility = mask * mask * (3 - 2 * mask);
       return scaleColor(chosenColor('color_primary'), visibility * brightness / 100);
     }
@@ -338,7 +340,7 @@
     canvas.width = halloween ? 600 : 420;
     canvas.height = halloween ? 420 : 600;
     canvas.setAttribute('aria-label', halloween
-      ? 'Two fan eyes shown side by side. Vertical slits close fully and reopen.'
+      ? 'Two fan eyes shown side by side. Top and bottom LEDs fade to black, then reopen.'
       : 'Top and bottom fan preview. In Custom LEDs mode, select an LED to edit its color.');
     stage.classList.toggle('homelab-sideways', halloween);
     for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;

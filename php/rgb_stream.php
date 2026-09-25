@@ -207,19 +207,21 @@ function homelab_eye_closure($elapsed, $period)
 {
   $cycle = (int) floor($elapsed / $period);
   $time = fmod($elapsed, $period);
-  $duration = min(1.8, $period * 0.32);
-  $first = $period * 0.45;
+  $variation = (($cycle + 1) * 73 + ($cycle + 1) * ($cycle + 1) * 29 + 13) % 101;
+  $duration = min(2.25, $period * 0.34);
+  $first = $period * (0.27 + ($variation % 13) / 100);
   $blinks = [[$first, $duration]];
-  if ($cycle % 4 === 0) {
-    $blinks[] = [$first + $duration + min(0.16, $period * 0.05),
-      min(0.6, $period * 0.12)];
+  if ($variation % 4 === 1) {
+    $blinks[] = [$first + $duration + min(0.15, $period * 0.04),
+      min(0.65, $period * 0.12)];
   }
   $closure = 0;
   foreach ($blinks as [$start, $length]) {
     if ($time >= $start && $time <= $start + $length) {
       $progress = ($time - $start) / $length;
-      $closure = max($closure, $progress < 0.4 ? $progress / 0.4 :
-        ($progress <= 0.6 ? 1 : (1 - $progress) / 0.4));
+      $ramp = max(0, min(1, $progress < 0.42 ? $progress / 0.42 :
+        ($progress <= 0.58 ? 1 : (1 - $progress) / 0.42)));
+      $closure = max($closure, $ramp * $ramp * (3 - 2 * $ramp));
     }
   }
   return $closure;
@@ -284,9 +286,9 @@ function homelab_stream_leds($config, $elapsed = 0)
     $leds = [];
     for ($i = 0; $i < 24; $i++) {
       $local = $i % HOMELAB_STREAM_FAN_LEDS;
-      $angle = deg2rad(255 - 30 * $local);
-      $edge = abs(sin($angle));
-      $visibility = max(0, min(1, (0.05 + 1.2 * (1 - $closure) - $edge) / 0.18));
+      $angle = deg2rad(255 - 30 * $local + 7.5);
+      $edge = abs(cos($angle));
+      $visibility = max(0, min(1, (0.02 + 1.35 * (1 - $closure) - $edge) / 0.3));
       $visibility = $visibility * $visibility * (3 - 2 * $visibility);
       $leds[] = homelab_stream_brightness(
         homelab_stream_level($tuning['color_primary'], $visibility), $tuning['brightness_pct']);

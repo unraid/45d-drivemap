@@ -12,6 +12,7 @@
 - Extended each outer loop arc to nine LEDs per fan so the patterns reach farther around both sides.
 - Added selectable colors for streamed patterns, optional two-color rainbow palettes, and Comet tail length and variation controls.
 - Added per-fan skipped LED and separate middle color controls for Outer Loop, Two-Color Loop, and Comet Loop.
+- Added adjustable unlit virtual steps at both fan crossings to smooth motion around the combined outer loop.
 - Added a local-time night schedule that turns fan lights off and restores the saved daytime mode.
 - Added a selectable fan-light toggle action through Unraid 7.4's power-button plugin hook.
 - Debounced duplicate physical power-button events so one press leaves the lights in the selected state.

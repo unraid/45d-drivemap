@@ -54,6 +54,10 @@ rainbow palettes. Animated streams run at 15 frames per second. Static custom
 palettes run at 5 frames per second. Applying
 any global option stops the stream and returns control to OpenRGB. Fan speed is
 unaffected.
+Outer Loop, Two-Color Loop, and Comet Loop also have a Virtual gap control.
+It adds zero to three unlit timing steps at each transition between fans;
+the default is one. These steps are shown as faint rings in the preview and
+do not address or turn off any physical LED.
 Night schedule uses the server's local clock. Choose an off time and restore
 time in Settings > System Settings > 45HomeLab, then enable night mode. It turns
 fan lights off during that window and restores the last applied daytime mode.

@@ -32,12 +32,13 @@
     'period_seconds', 'direction', 'hue_degrees', 'brightness_pct',
     'bottom_phase_steps', 'rainbow_cycles', 'fade_pct', 'palette_mode',
     'color_primary', 'color_secondary', 'tail_leds', 'tail_variation', 'skipped_leds',
+    'virtual_gap_steps',
     'middle_enabled', 'middle_color'
   ].map((name) => [name, root.elements.namedItem(name)]));
   const defaults = {
     period_seconds: 6, direction: 'clockwise', hue_degrees: 0,
     brightness_pct: 100, bottom_phase_steps: 0, rainbow_cycles: 1,
-    fade_pct: 35, tail_leds: 6, tail_variation: 50, skipped_leds: 3,
+    fade_pct: 35, tail_leds: 6, tail_variation: 50, skipped_leds: 3, virtual_gap_steps: 1,
     middle_enabled: '0', middle_color: '#ffffff'
   };
   const patternDefaults = {
@@ -55,10 +56,15 @@
   let cachedLoop;
   function loopOrder() {
     const count = Number(fields.skipped_leds.value);
-    if (cachedLoop && cachedLoop.count === count) return cachedLoop;
+    const gap = Number(fields.virtual_gap_steps.value);
+    if (cachedLoop && cachedLoop.count === count && cachedLoop.gap === gap) return cachedLoop;
     const skipped = new Set([...topSkipPriority.slice(0, count), ...bottomSkipPriority.slice(0, count)]);
     const order = perimeter.filter((index) => !skipped.has(index));
-    cachedLoop = { count, order, rank: new Map(order.map((index, step) => [index, step])) };
+    const topCount = order.length / 2;
+    cachedLoop = {
+      count, gap, order, length: order.length + 2 * gap,
+      rank: new Map(order.map((index, step) => [index, step + (step >= topCount ? gap : 0)]))
+    };
     return cachedLoop;
   }
   const descriptions = {
@@ -154,16 +160,16 @@
       return scaleColor(scaleColor(color, level), brightness / 100);
     }
     if (mode.value === 'brand-loop' || mode.value === 'comet-loop') {
-      const { order, rank } = loopOrder();
+      const { rank, length } = loopOrder();
       const step = rank.get(index);
       if (step === undefined) return middleColor(brightness);
-      const position = (step + alignment) * cycles - direction * time * order.length;
+      const position = (step + alignment) * cycles - direction * time * length;
       let color;
       if (mode.value === 'brand-loop') {
-        const ratio = 0.5 + 0.5 * Math.cos(2 * Math.PI * position / order.length);
+        const ratio = 0.5 + 0.5 * Math.cos(2 * Math.PI * position / length);
         color = mixColor(chosenColor('color_secondary'), chosenColor('color_primary'), ratio);
       } else {
-        const distance = ((position % order.length) + order.length) % order.length;
+        const distance = ((position % length) + length) % length;
         let level = Math.max(0, 1 - distance / Number(fields.tail_leds.value));
         if (distance >= 1 && level > 0) {
           const tick = Math.floor(elapsed * 5);
@@ -179,10 +185,10 @@
     const hueOffset = Math.round(Number(fields.hue_degrees.value) * 1536 / 360);
     const bottomOffset = index >= 12 ? Number(fields.bottom_phase_steps.value) * 128 * cycles : 0;
     if (mode.value === 'pinwheel-rainbow') {
-      const { order, rank } = loopOrder();
+      const { rank, length } = loopOrder();
       const step = rank.get(index);
       return step === undefined ? middleColor(brightness) : paletteColor(
-        Math.round(step * 1536 * cycles / order.length) + hueOffset + bottomOffset - phase,
+        Math.round(step * 1536 * cycles / length) + hueOffset + bottomOffset - phase,
         brightness
       );
     }
@@ -242,7 +248,7 @@
     const units = {
       period_seconds: ' s', hue_degrees: ' deg', brightness_pct: '%',
       bottom_phase_steps: ' LEDs', fade_pct: '%', tail_leds: ' LEDs',
-      tail_variation: '%', skipped_leds: ' per fan'
+      tail_variation: '%', skipped_leds: ' per fan', virtual_gap_steps: ' per crossing'
     };
     for (const [name, unit] of Object.entries(units)) {
       const value = `${fields[name].value}${unit}`;
@@ -357,6 +363,29 @@
     context.clearRect(0, 0, canvas.width, canvas.height);
     fan(170, 0, palette);
     fan(430, 1, palette);
+    if (['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value)) {
+      const { order, gap } = loopOrder();
+      const point = (index) => {
+        const angle = (240 - 30 * (index % 12)) * Math.PI / 180;
+        return [210 + Math.cos(angle) * 47,
+          (index < 12 ? 170 : 430) - Math.sin(angle) * 47];
+      };
+      const topCount = order.length / 2;
+      for (const [fromIndex, toIndex] of [[order[topCount - 1], order[topCount]],
+        [order[order.length - 1], order[0]]]) {
+        const from = point(fromIndex);
+        const to = point(toIndex);
+        for (let step = 1; step <= gap; step++) {
+          const fraction = step / (gap + 1);
+          context.globalAlpha = 0.65;
+          context.setLineDash([3, 3]);
+          circle(from[0] + (to[0] - from[0]) * fraction,
+            from[1] + (to[1] - from[1]) * fraction, 8, null, palette.text);
+          context.setLineDash([]);
+          context.globalAlpha = 1;
+        }
+      }
+    }
     circle(210, 300, 4, palette.text, null);
   }
 

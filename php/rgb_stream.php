@@ -28,6 +28,7 @@ const HOMELAB_STREAM_TUNING_DEFAULTS = [
   'tail_leds' => 6,
   'tail_variation' => 50,
   'skipped_leds' => 3,
+  'virtual_gap_steps' => 1,
   'middle_enabled' => false,
   'middle_color' => 'FFFFFF',
 ];
@@ -60,7 +61,7 @@ function homelab_stream_tuning($input)
     'brightness_pct' => [10, 100], 'bottom_phase_steps' => [-6, 6],
     'rainbow_cycles' => [1, 3], 'fade_pct' => [0, 80],
     'tail_leds' => [3, 9], 'tail_variation' => [0, 100],
-    'skipped_leds' => [0, 6]] as $key => [$min, $max]) {
+    'skipped_leds' => [0, 6], 'virtual_gap_steps' => [0, 3]] as $key => [$min, $max]) {
     if (!array_key_exists($key, $input)) {
       continue;
     }
@@ -276,11 +277,13 @@ function homelab_stream_leds($config, $elapsed = 0)
   if (in_array($effect, ['brand-loop', 'comet-loop'], true)) {
     $leds = array_fill(0, 24, '000000');
     $order = homelab_pinwheel_order($tuning['skipped_leds']);
-    $count = count($order);
+    $top_count = intdiv(count($order), 2);
+    $count = count($order) + 2 * $tuning['virtual_gap_steps'];
     $direction = $tuning['direction'] === 'counterclockwise' ? -1 : 1;
     foreach ($order as $step => $index) {
       $alignment = $index >= HOMELAB_STREAM_FAN_LEDS ? $tuning['bottom_phase_steps'] : 0;
-      $position = ($step + $alignment) * $cycles -
+      $slot = $step + ($step >= $top_count ? $tuning['virtual_gap_steps'] : 0);
+      $position = ($slot + $alignment) * $cycles -
         $direction * $elapsed * $count * $cycles / $tuning['period_seconds'];
       if ($effect === 'brand-loop') {
         $ratio = 0.5 + 0.5 * cos(2 * M_PI * $position / $count);
@@ -315,9 +318,12 @@ function homelab_stream_leds($config, $elapsed = 0)
   if (in_array($config['effect'] ?? null, ['pinwheel-rainbow', 'center-rainbow'], true)) {
     $leds = array_fill(0, 24, '000000');
     $order = homelab_pinwheel_order($tuning['skipped_leds']);
+    $top_count = intdiv(count($order), 2);
+    $count = count($order) + 2 * $tuning['virtual_gap_steps'];
     foreach ($order as $step => $index) {
       // Spread one complete rainbow around the combined outer perimeter.
-      $hue = (int) round($step * 1536 * $cycles / count($order));
+      $slot = $step + ($step >= $top_count ? $tuning['virtual_gap_steps'] : 0);
+      $hue = (int) round($slot * 1536 * $cycles / $count);
       $hue += $hue_offset - $phase;
       if ($index >= HOMELAB_STREAM_FAN_LEDS) {
         $hue += $bottom_offset;

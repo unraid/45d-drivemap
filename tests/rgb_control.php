@@ -50,6 +50,10 @@ check($rainbow[8] !== $rainbow[20] && $rainbow[14] !== $rainbow[2] &&
   'pinwheel spreads all rainbow hues across one perimeter');
 check($rainbow === homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 6),
   'pinwheel repeats after one full rotation');
+$without_gap = homelab_stream_leds(['effect' => 'pinwheel-rainbow', 'virtual_gap_steps' => 0], 0);
+check($rainbow[HOMELAB_PINWHEEL_ORDER[8]] !== $without_gap[HOMELAB_PINWHEEL_ORDER[8]] &&
+  $rainbow[HOMELAB_PINWHEEL_ORDER[9]] === $without_gap[HOMELAB_PINWHEEL_ORDER[9]],
+  'virtual gap changes spacing at fan crossings while keeping the opposite fan centered');
 foreach (['pinwheel-rainbow', 'brand-loop', 'comet-loop'] as $effect) {
   foreach ([0, 2, 5, 6] as $skipped) {
     $order = homelab_pinwheel_order($skipped);
@@ -93,6 +97,10 @@ check($comet[HOMELAB_PINWHEEL_ORDER[0]] === 'FFFFFF' &&
   $comet[HOMELAB_PINWHEEL_ORDER[1]] !== '000000' &&
   $comet[HOMELAB_PINWHEEL_ORDER[6]] === '000000',
   'comet has white head and short fading tail');
+check(!in_array('FFFFFF', homelab_stream_leds(['effect' => 'comet-loop'], 2.7), true) &&
+  homelab_stream_leds(['effect' => 'comet-loop'], 3)[HOMELAB_PINWHEEL_ORDER[9]] === 'FFFFFF' &&
+  homelab_stream_leds(['effect' => 'comet-loop', 'virtual_gap_steps' => 0], 3)[HOMELAB_PINWHEEL_ORDER[9]] === 'FFFFFF',
+  'comet traverses an unlit virtual step before crossing to the next fan');
 check($comet === homelab_stream_leds(['effect' => 'comet-loop'], 0) &&
   $comet[HOMELAB_PINWHEEL_ORDER[2]] !==
     homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 0)[HOMELAB_PINWHEEL_ORDER[2]],
@@ -145,7 +153,8 @@ check(homelab_stream_blend_frame(array_fill(0, 24, '010101'), array_fill(0, 24, 
 foreach ([['period_seconds' => '0'], ['brightness_pct' => ['100']],
   ['bottom_phase_steps' => '7'], ['direction' => 'sideways'], ['fade_pct' => '81'],
   ['tail_leds' => '2'], ['tail_variation' => '101'], ['skipped_leds' => '-1'],
-  ['skipped_leds' => '7'], ['middle_enabled' => 'yes'],
+  ['skipped_leds' => '7'], ['virtual_gap_steps' => '-1'], ['virtual_gap_steps' => '4'],
+  ['middle_enabled' => 'yes'],
   ['middle_color' => '#12345Z'], ['palette_mode' => 'unknown'],
   ['color_primary' => '#12345Z'], ['color_secondary' => ['#0000FF']]] as $bad_tuning) {
   check(!homelab_rgb_set_stream_effect('synchronized-rainbow', $bad_tuning)['ok'],
@@ -193,6 +202,7 @@ check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan co
   strpos($page, 'data-led-popover') !== false &&
   strpos($page, 'Night schedule') !== false && strpos($page, 'name="schedule_action"') !== false &&
   strpos($page, 'name="fade_pct"') !== false && strpos($page, 'name="skipped_leds"') !== false &&
+  strpos($page, 'name="virtual_gap_steps"') !== false &&
   strpos($page, 'name="middle_enabled"') !== false && strpos($page, 'name="middle_color"') !== false,
   'page offers tuned animations and custom LED painting');
 unset($_SERVER['REQUEST_METHOD'], $_POST, $var);

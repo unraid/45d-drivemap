@@ -13,6 +13,7 @@ require_once $rgb_helper;
 
 $message = null;
 $error = null;
+$schedule_action = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['schedule_action'] ?? null) === 'save';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   // Unraid validates and removes csrf_token before rendering this page.
   if (($_POST['schedule_action'] ?? null) === 'save') {
@@ -64,6 +65,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   }
 }
 $schedule = homelab_schedule_load();
+$schedule_form = $schedule;
+if ($schedule_action && $error !== null) {
+  $schedule_form = [
+    'enabled' => ($_POST['enabled'] ?? null) === '1',
+    'start' => is_string($_POST['start'] ?? null) ? $_POST['start'] : '',
+    'end' => is_string($_POST['end'] ?? null) ? $_POST['end'] : '',
+  ];
+}
 $day_selection = homelab_schedule_day_selection();
 $active_streaming = homelab_stream_pid() !== null;
 $streaming = $active_streaming;
@@ -94,10 +103,10 @@ if (!$ready && $error === null) {
 <div class="homelab-lighting-page">
   <h2>Fan lighting</h2>
   <p>Choose a lighting mode, preview both fan hubs, then apply it to the X4. Each daisy-chained fan has 12 LEDs.</p>
-  <?php if ($message): ?>
+  <?php if ($message && !$schedule_action): ?>
     <p role="status"><?=htmlspecialchars($message, ENT_QUOTES, 'UTF-8')?></p>
   <?php endif; ?>
-  <?php if ($error): ?>
+  <?php if ($error && !$schedule_action): ?>
     <p role="alert"><?=htmlspecialchars($error, ENT_QUOTES, 'UTF-8')?></p>
   <?php endif; ?>
   <form method="post" id="homelab-rgb-preview" data-led-colors="<?=htmlspecialchars(json_encode($custom_palette), ENT_QUOTES, 'UTF-8')?>" data-preset-colors="<?=htmlspecialchars(json_encode(array_map(fn($preset) => $preset['color'] ?: '000000', HOMELAB_RGB_PRESETS)), ENT_QUOTES, 'UTF-8')?>">
@@ -253,20 +262,26 @@ if (!$ready && $error === null) {
   <section class="homelab-night-card" aria-labelledby="homelab-night-heading">
     <h3 id="homelab-night-heading">Night schedule</h3>
     <p>Turn fan lights off at your chosen time, then restore the last applied daytime lighting. Times use this server's local clock (<?=htmlspecialchars(date('T'), ENT_QUOTES, 'UTF-8')?>).</p>
-    <form method="post" class="homelab-night-form">
+    <?php if ($schedule_action && $message): ?>
+      <p role="status"><?=htmlspecialchars($message, ENT_QUOTES, 'UTF-8')?></p>
+    <?php endif; ?>
+    <?php if ($schedule_action && $error): ?>
+      <p role="alert"><?=htmlspecialchars($error, ENT_QUOTES, 'UTF-8')?></p>
+    <?php endif; ?>
+    <form method="post" action="#homelab-night-heading" class="homelab-night-form">
       <input type="hidden" name="csrf_token" value="<?=htmlspecialchars((string)($var['csrf_token'] ?? ''), ENT_QUOTES, 'UTF-8')?>">
       <input type="hidden" name="schedule_action" value="save">
       <label for="homelab-night-enabled">Night mode
         <select id="homelab-night-enabled" name="enabled">
-          <option value="0" <?=$schedule['enabled'] ? '' : 'selected'?>>Off</option>
-          <option value="1" <?=$schedule['enabled'] ? 'selected' : ''?>>On</option>
+          <option value="0" <?=$schedule_form['enabled'] ? '' : 'selected'?>>Off</option>
+          <option value="1" <?=$schedule_form['enabled'] ? 'selected' : ''?>>On</option>
         </select>
       </label>
       <label for="homelab-night-start">Lights off at
-        <input id="homelab-night-start" type="time" name="start" value="<?=htmlspecialchars($schedule['start'], ENT_QUOTES, 'UTF-8')?>">
+        <input id="homelab-night-start" type="time" name="start" value="<?=htmlspecialchars($schedule_form['start'], ENT_QUOTES, 'UTF-8')?>">
       </label>
       <label for="homelab-night-end">Restore at
-        <input id="homelab-night-end" type="time" name="end" value="<?=htmlspecialchars($schedule['end'], ENT_QUOTES, 'UTF-8')?>">
+        <input id="homelab-night-end" type="time" name="end" value="<?=htmlspecialchars($schedule_form['end'], ENT_QUOTES, 'UTF-8')?>">
       </label>
       <button type="submit">Save schedule</button>
     </form>
@@ -318,4 +333,4 @@ if (!$ready && $error === null) {
   @media (max-width: 760px) { #homelab-rgb-preview .homelab-editor-grid { grid-template-columns:1fr; } }
   @media (max-width: 640px) { #homelab-rgb-preview .homelab-tuning { grid-template-columns:1fr; } #homelab-rgb-preview .homelab-custom-divider { display:none; } #homelab-rgb-preview .homelab-mode-row { align-items:stretch; flex-direction:column; } #homelab-rgb-preview .homelab-mode-row select { min-width:0; } }
 </style>
-<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=18"></script>
+<script src="/plugins/45homelab/assets/45d/rgb-preview.js?v=19"></script>

@@ -13,7 +13,10 @@ $directory = sys_get_temp_dir() . '/45homelab-schedule-' . getmypid();
 mkdir($directory, 0700);
 putenv('HOMELAB_RGB_CONFIG_DIR=' . $directory);
 putenv('HOMELAB_RGB_RUNTIME_DIR=' . $directory);
-putenv('HOMELAB_UPDATE_CRON_BIN=/usr/bin/true');
+$cron_updater = $directory . '/update-cron';
+file_put_contents($cron_updater, "#/bin/bash\nexit 0\n");
+chmod($cron_updater, 0700);
+putenv('HOMELAB_UPDATE_CRON_BIN=' . $cron_updater);
 $paths = homelab_schedule_paths();
 
 schedule_check(homelab_schedule_load() === homelab_schedule_defaults(),
@@ -26,6 +29,20 @@ foreach ([
 ] as $invalid) {
   schedule_check(!homelab_schedule_save($invalid)['ok'], 'invalid schedule is rejected');
 }
+
+$_SERVER['REQUEST_METHOD'] = 'POST';
+$_POST = ['schedule_action' => 'save', 'enabled' => '1', 'start' => '22:00', 'end' => '22:00'];
+ob_start();
+include dirname(__DIR__) . '/HomeLab.page';
+$page = ob_get_clean();
+unset($_SERVER['REQUEST_METHOD'], $_POST);
+$night_card = substr($page, strpos($page, '<section class="homelab-night-card"'));
+schedule_check(strpos($night_card, 'role="alert"') !== false &&
+  strpos($night_card, 'Choose different start and end times') !== false &&
+  strpos($night_card, 'value="1" selected>On') !== false &&
+  substr_count($night_card, 'value="22:00"') === 2 &&
+  strpos($night_card, 'action="#homelab-night-heading"') !== false,
+  'invalid schedule shows error beside times and preserves input');
 
 $schedule = homelab_schedule_validate(['enabled' => '1', 'start' => '22:00', 'end' => '07:00']);
 date_default_timezone_set('America/New_York');
@@ -46,7 +63,7 @@ schedule_check(homelab_schedule_day_selection() === ['kind' => 'global', 'preset
 schedule_check(homelab_schedule_write($paths['schedule'], $schedule), 'schedule persists');
 schedule_check(homelab_schedule_sync_cron()['ok'] &&
   strpos(file_get_contents($paths['cron']), '45d-rgb-schedule.php') !== false,
-  'enabled schedule installs Unraid cron entry');
+  'enabled schedule installs Unraid cron entry with its malformed shebang');
 
 $applied = [];
 $apply = function ($phase, $selection) use (&$applied) {

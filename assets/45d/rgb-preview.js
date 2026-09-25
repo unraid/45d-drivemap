@@ -3,6 +3,19 @@
   if (!root || root.dataset.previewInitialized === 'true') return;
   root.dataset.previewInitialized = 'true';
 
+  const nightForm = document.querySelector('.homelab-night-form');
+  if (nightForm) {
+    const enabled = nightForm.elements.namedItem('enabled');
+    const start = nightForm.elements.namedItem('start');
+    const end = nightForm.elements.namedItem('end');
+    const updateRequiredTimes = () => {
+      start.required = enabled.value === '1';
+      end.required = enabled.value === '1';
+    };
+    enabled.addEventListener('change', updateRequiredTimes);
+    updateRequiredTimes();
+  }
+
   const canvas = root.querySelector('canvas');
   const context = canvas.getContext('2d');
   const mode = root.querySelector('select');

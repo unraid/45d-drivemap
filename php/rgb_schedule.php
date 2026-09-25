@@ -34,7 +34,10 @@ function homelab_schedule_validate($input)
       throw new InvalidArgumentException('Choose valid local start and end times.');
     }
   }
-  if ($enabled && ($start === '' || $end === '' || $start === $end)) {
+  if ($enabled && ($start === '' || $end === '')) {
+    throw new InvalidArgumentException('Choose lights-off and restore times to turn on night mode.');
+  }
+  if ($enabled && $start === $end) {
     throw new InvalidArgumentException('Choose different start and end times for night mode.');
   }
   return ['enabled' => $enabled, 'start' => $start, 'end' => $end];
@@ -257,7 +260,8 @@ function homelab_schedule_sync_cron()
     return ['ok' => false, 'error' => 'Unraid cron updater was not found.'];
   }
   $pipes = [];
-  $process = proc_open([$binary], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+  // Unraid's update_cron begins with "#/bin/bash" rather than a valid shebang.
+  $process = proc_open(['/bin/bash', $binary], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
   if (!is_resource($process)) {
     return ['ok' => false, 'error' => 'Could not update the night schedule.'];
   }

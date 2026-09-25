@@ -26,6 +26,7 @@
 - Paced animated fan streams at 15 frames per second and blended adjacent frames for smoother motion.
 
 ### Fixed
+- Run Unraid's cron updater through Bash, since its script lacks a valid shebang. Keep invalid night schedule input visible and show validation next to the schedule controls.
 - Target the X4 controller without OpenRGB's zone flag, which accepts commands but leaves the fan lights unchanged on this board.
 - Let Unraid handle CSRF validation for the lighting form; its request handler removes the token before the page runs.
 - Ensure faded LEDs reach fully off instead of remaining dimly lit.

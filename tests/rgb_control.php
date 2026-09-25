@@ -103,6 +103,13 @@ check($comet[HOMELAB_PINWHEEL_ORDER[0]] === HOMELAB_BRAND_ORANGE &&
   $comet[HOMELAB_PINWHEEL_ORDER[1]] !== '000000' &&
   $comet[HOMELAB_PINWHEEL_ORDER[6]] === '000000',
   'comet has orange head and short fading blue tail');
+$comet_tail = array_map(fn($index) => $comet[$index], array_slice(HOMELAB_PINWHEEL_ORDER, 1, 5));
+check(count(array_filter($comet_tail, fn($color) => $color !== '000000')) === 5 &&
+  hexdec(substr($comet_tail[0], 0, 2)) > hexdec(substr($comet_tail[1], 0, 2)) &&
+  hexdec(substr($comet_tail[1], 0, 2)) > 0 &&
+  hexdec(substr($comet_tail[0], 4, 2)) > 0 &&
+  hexdec(substr($comet_tail[4], 4, 2)) > 0,
+  'comet carries orange into multiple LEDs before blending to blue');
 check(!in_array(HOMELAB_BRAND_ORANGE, homelab_stream_leds(['effect' => 'comet-loop'], 8 / 18 * 6), true) &&
   homelab_stream_leds(['effect' => 'comet-loop'], 3)[HOMELAB_PINWHEEL_ORDER[8]] === HOMELAB_BRAND_ORANGE &&
   homelab_stream_leds(['effect' => 'comet-loop', 'virtual_gap_steps' => 0], 3)[HOMELAB_PINWHEEL_ORDER[8]] === HOMELAB_BRAND_ORANGE,

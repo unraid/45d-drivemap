@@ -285,13 +285,13 @@ function homelab_stream_leds($config, $elapsed = 0)
         $color = homelab_stream_mix($tuning['color_secondary'], $tuning['color_primary'], $ratio);
       } else {
         $distance = fmod(fmod($position, $count) + $count, $count);
-        $level = max(0, 1 - $distance / $tuning['tail_leds']);
+        $level = pow(max(0, 1 - $distance / $tuning['tail_leds']), 0.7);
         if ($distance >= 1 && $level > 0) {
           $tick = (int) floor($elapsed * 5);
           $variation = (($index * 73 + $tick * 151 + 37) % 101) / 100;
-          $level *= 1 - $tuning['tail_variation'] / 100 * (0.65 * (1 - $variation));
+          $level *= 1 - $tuning['tail_variation'] / 100 * (0.25 * (1 - $variation));
         }
-        $head = max(0, 1 - $distance);
+        $head = max(0, 1 - $distance / ($tuning['tail_leds'] - 1));
         $color = homelab_stream_level(homelab_stream_mix(
           $tuning['color_secondary'], $tuning['color_primary'], $head), $level);
       }

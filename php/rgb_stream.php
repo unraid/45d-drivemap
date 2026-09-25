@@ -5,7 +5,7 @@ const HOMELAB_STREAM_LED_COUNT = 303;
 const HOMELAB_STREAM_FAN_LEDS = 12;
 // Clockwise around the pair: top left to top right, then bottom right to left.
 const HOMELAB_PINWHEEL_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 20, 21, 22, 23, 12, 13, 14, 15];
-const HOMELAB_TOP_SKIP_PRIORITY = [11, 10, 0, 9, 1, 8];
+const HOMELAB_TOP_SKIP_PRIORITY = [11, 0, 10, 1, 9, 2];
 const HOMELAB_BOTTOM_SKIP_PRIORITY = [17, 18, 16, 19, 15, 20];
 const HOMELAB_STREAM_EFFECTS = [
   'pinwheel-rainbow' => 'Outer Loop',

@@ -51,8 +51,11 @@
   const colorDrafts = new Map();
   let lastMode = mode.value;
   const perimeter = [...Array(12).keys(), 18, 19, 20, 21, 22, 23, 12, 13, 14, 15, 16, 17];
-  const topSkipPriority = [11, 10, 0, 9, 1, 8];
+  const topSkipPriority = [11, 0, 10, 1, 9, 2];
   const bottomSkipPriority = [17, 18, 16, 19, 15, 20];
+  // Calibration: LED 1 is near 6:30 and LED 12 near 5:30 on the mounted fans.
+  const ledZeroAngle = 255;
+  const ledAngle = (local) => (ledZeroAngle - 30 * local) * Math.PI / 180;
   let cachedLoop;
   function loopOrder() {
     const count = Number(fields.skipped_leds.value);
@@ -233,7 +236,7 @@
     paintColor.value = `#${customColors[index]}`;
     popover.hidden = false;
     const local = index % 12;
-    const angle = (240 - 30 * local) * Math.PI / 180;
+    const angle = ledAngle(local);
     const scale = canvas.clientWidth / canvas.width;
     const x = (210 + Math.cos(angle) * 47) * scale;
     const y = ((index < 12 ? 170 : 430) - Math.sin(angle) * 47) * scale;
@@ -327,7 +330,7 @@
     circle(x, y, 57, palette.body, palette.border);
     for (let local = 0; local < 12; local++) {
       const index = fanIndex * 12 + local;
-      const angle = (240 - 30 * local) * Math.PI / 180;
+      const angle = ledAngle(local);
       const ledX = x + Math.cos(angle) * 47;
       const ledY = y - Math.sin(angle) * 47;
       const channels = displayedColors[index];
@@ -366,7 +369,7 @@
     if (['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value)) {
       const { order, gap } = loopOrder();
       const point = (index) => {
-        const angle = (240 - 30 * (index % 12)) * Math.PI / 180;
+        const angle = ledAngle(index % 12);
         return [210 + Math.cos(angle) * 47,
           (index < 12 ? 170 : 430) - Math.sin(angle) * 47];
       };
@@ -442,7 +445,7 @@
     const y = (event.clientY - bounds.top) * canvas.height / bounds.height;
     for (let index = 0; index < 24; index++) {
       const local = index % 12;
-      const angle = (240 - 30 * local) * Math.PI / 180;
+      const angle = ledAngle(local);
       const ledX = 210 + Math.cos(angle) * 47;
       const ledY = (index < 12 ? 170 : 430) - Math.sin(angle) * 47;
       if ((x - ledX) ** 2 + (y - ledY) ** 2 <= 20 ** 2) {

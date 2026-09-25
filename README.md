@@ -58,6 +58,8 @@ Outer Loop, Two-Color Loop, and Comet Loop also have a Virtual gap control.
 It adds zero to three unlit timing steps at each transition between fans;
 the default is one. These steps are shown as faint rings in the preview and
 do not address or turn off any physical LED.
+The mounted X4 fans place the gap between physical LEDs. Even skipped-LED counts
+balance the middle area on both sides; odd counts favor one side by one LED.
 Night schedule uses the server's local clock. Choose an off time and restore
 time in Settings > System Settings > 45HomeLab, then enable night mode. It turns
 fan lights off during that window and restores the last applied daytime mode.

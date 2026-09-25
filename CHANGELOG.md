@@ -28,6 +28,7 @@
 - Target the X4 controller without OpenRGB's zone flag, which accepts commands but leaves the fan lights unchanged on this board.
 - Let Unraid handle CSRF validation for the lighting form; its request handler removes the token before the page runs.
 - Ensure faded LEDs reach fully off instead of remaining dimly lit.
+- Calibrate the X4 fan preview to the measured LED positions; LED 1 is at about 6:30 on the mounted fans. Pair top middle LEDs across the gap for even skipped counts.
 
 ## 0.4.0
 

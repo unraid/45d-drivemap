@@ -36,6 +36,9 @@ check(substr($packets[0], 0, 9) === "\x00\x10\x00\xff\xe3\x00\x00\x2f\x01" &&
 $rainbow = homelab_stream_leds(['effect' => 'pinwheel-rainbow'], 0);
 check(homelab_pinwheel_order(3) === HOMELAB_PINWHEEL_ORDER,
   'default skipped LEDs preserve tuned X4 perimeter');
+check(array_values(array_diff(range(0, 11), homelab_pinwheel_order(4))) === [0, 1, 10, 11] &&
+  array_values(array_diff(range(12, 23), homelab_pinwheel_order(4))) === [16, 17, 18, 19],
+  'four skipped LEDs form balanced center pairs on both mounted fans');
 check($rainbow[0] === '000000' && $rainbow[11] === '000000' &&
   $rainbow[12] !== '000000' && $rainbow[23] !== '000000',
   'pinwheel blanks inward hub LEDs and lights outward arcs');

@@ -68,15 +68,15 @@ $press = function ($action, $selection) use (&$button) {
 };
 schedule_check(homelab_power_toggle($press, 100)['ok'] && $button[0] === ['off', null],
   'power button turns current lighting off');
-schedule_check(homelab_power_toggle($press, 101)['ok'] && count($button) === 1 &&
+schedule_check(homelab_power_toggle($press, 100.5)['ok'] && count($button) === 1 &&
   json_decode(file_get_contents($paths['power']), true)['off'],
   'duplicate button event does not turn lighting back on');
-schedule_check(homelab_power_toggle($press, 104)['ok'] &&
+schedule_check(homelab_power_toggle($press, 101)['ok'] &&
   $button[1] === ['on', ['kind' => 'global', 'preset' => 'blue']],
-  'later power button press restores last daytime lighting');
+  'button press after one second restores last daytime lighting');
 schedule_check(homelab_schedule_tick(false, strtotime('2026-09-25 22:00'), $apply)['ok'],
   'night schedule can turn lights off after a power button toggle');
-schedule_check(homelab_power_toggle($press, 105)['ok'] &&
+schedule_check(homelab_power_toggle($press, 102)['ok'] &&
   $button[2] === ['on', ['kind' => 'global', 'preset' => 'blue']],
   'power button can temporarily restore lights during night mode');
 schedule_check(homelab_schedule_tick(false, strtotime('2026-09-25 23:00'), $apply)['ok'] &&

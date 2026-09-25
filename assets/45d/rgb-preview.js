@@ -408,6 +408,12 @@
       context.stroke();
     }
     circle(x, y, 57, palette.body, palette.border);
+    if (meshView.checked) {
+      context.save();
+      context.beginPath();
+      context.arc(x, y, 116, 0, Math.PI * 2);
+      context.clip();
+    }
     for (let local = 0; local < 12; local++) {
       const index = fanIndex * 12 + local;
       const angle = ledAngle(local);
@@ -417,13 +423,13 @@
       const lit = channels.some((value) => value >= 25) ? `rgb(${channels.join(',')})` : null;
       if (meshView.checked) {
         if (channels.some((value) => value > 0)) {
-          const glow = context.createRadialGradient(ledX, ledY, 0, ledX, ledY, 34);
+          const glow = context.createRadialGradient(ledX, ledY, 0, ledX, ledY, 112);
           const rgb = channels.join(',');
-          glow.addColorStop(0, `rgba(${rgb},.95)`);
-          glow.addColorStop(0.3, `rgba(${rgb},.55)`);
+          glow.addColorStop(0, `rgba(${rgb},.5)`);
+          glow.addColorStop(0.5, `rgba(${rgb},.22)`);
           glow.addColorStop(1, `rgba(${rgb},0)`);
           context.fillStyle = glow;
-          context.fillRect(ledX - 34, ledY - 34, 68, 68);
+          context.fillRect(ledX - 112, ledY - 112, 224, 224);
         }
       } else {
         context.shadowBlur = lit ? 20 : 0;
@@ -442,12 +448,15 @@
         context.fillText(String(index + 1), ledX, ledY);
       }
     }
-    circle(x, y, 28, palette.surface, palette.border);
+    if (meshView.checked) context.restore();
+    else circle(x, y, 28, palette.surface, palette.border);
     context.fillStyle = palette.text;
     context.font = '13px sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    if (mode.value !== 'halloween-eyes') context.fillText(fanIndex === 0 ? 'TOP' : 'BOTTOM', x, y);
+    if (mode.value !== 'halloween-eyes' && !meshView.checked) {
+      context.fillText(fanIndex === 0 ? 'TOP' : 'BOTTOM', x, y);
+    }
   }
 
   function draw() {

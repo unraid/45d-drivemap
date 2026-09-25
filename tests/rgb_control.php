@@ -173,6 +173,9 @@ check(!homelab_rgb_set_stream_effect('unknown-loop')['ok'],
 check(!homelab_rgb_set_custom(json_encode(array_merge(array_fill(0, 23, 'FFFFFF'), ['invalid'])))['ok'],
   'rejects invalid custom LED colors');
 check(!homelab_rgb_set_separate('bad', 'blue')['ok'], 'rejects unknown separate preset');
+check(homelab_rgb_separate_colors('#aBcDeF', 'off') === ['top' => 'ABCDEF', 'bottom' => '000000'] &&
+  homelab_rgb_separate_colors('white', '#123456') === ['top' => 'FFFFFF', 'bottom' => '123456'],
+  'separate fans accept custom colors and existing presets');
 file_put_contents($fixture, "0: ASRock B860I WiFi\n  Modes: [Off] Static Wave Rainbow Direct\n  Zones: 'Addressable Header 1' 'Other Header'\n");
 check(!homelab_rgb_detect($binary)['ok'], 'rejects controller with other zones');
 file_put_contents($fixture, "0: ASRock B860I WiFi\n  Modes: [Off] Static Wave Rainbow Direct\n  Zones: 'Addressable Header 1'\n");
@@ -209,6 +212,8 @@ check(strpos($page, 'Lighting mode') !== false && strpos($page, 'Separate fan co
   strpos($page, 'Night schedule') !== false && strpos($page, 'name="schedule_action"') !== false &&
   strpos($page, 'name="fade_pct"') !== false && strpos($page, 'Middle width:') !== false &&
   strpos($page, 'name="skipped_leds" min="0" max="6" step="2"') !== false &&
+  strpos($page, 'data-color-heading') !== false && strpos($page, 'data-separate-help') !== false &&
+  strpos($page, 'data-tuning-controls') !== false && strpos($page, 'name="top_color"') === false &&
   strpos($page, 'name="virtual_gap_steps"') !== false &&
   strpos($page, 'name="middle_enabled"') !== false && strpos($page, 'name="middle_color"') !== false,
   'page offers tuned animations and custom LED painting');

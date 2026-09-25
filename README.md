@@ -33,7 +33,7 @@ OpenRGB runtime. The X4 controller must appear as `ASRock B860I WiFi` with
 Select Off, White, Warm White, Red, Orange, Yellow, Green, Teal, Cyan, Blue,
 Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
 Cycle. Click **Apply lighting**.
-The lighting editor also offers independent solid colors for the top and
+The lighting editor also offers independent, freely chosen colors for the top and
 bottom fans, Outer Loop, Synchronized Wave, Two-Color Loop, Comet Loop,
 Two-Color Pulse, and custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open its
 color editor, or fill either fan. The orange/blue split button provides a
@@ -42,7 +42,7 @@ starting palette. Apply the lighting to send it to the fans. The palette is save
 Outer Loop, Two-Color Loop, and Comet Loop reserve four inward-facing LEDs per
 fan by default. The Middle width control offers zero, two, four, or six LEDs per
 fan and updates the preview before applying. Middle LEDs can stay off or use a
-separate color. Streamed patterns have two color pickers.
+separate color. Separate fan colors and streamed patterns share two color pickers.
 Rainbow patterns can use
 their full rainbow or blend the two chosen colors. Comet also offers tail length
 and tail variation; variation changes individual tail LEDs over time while the

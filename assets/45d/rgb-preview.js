@@ -20,13 +20,13 @@
   const context = canvas.getContext('2d');
   const mode = root.querySelector('select');
   const globalPreset = root.elements.namedItem('color');
-  const topPreset = root.elements.namedItem('top_color');
-  const bottomPreset = root.elements.namedItem('bottom_color');
   const presetColors = JSON.parse(root.dataset.presetColors);
   const globalControls = root.querySelector('[data-global-controls]');
-  const separateControls = root.querySelector('[data-separate-controls]');
   const patternColors = root.querySelector('[data-pattern-colors]');
+  const colorHeading = root.querySelector('[data-color-heading]');
   const colorPickers = root.querySelector('[data-color-pickers]');
+  const separateHelp = root.querySelector('[data-separate-help]');
+  const tuningControls = root.querySelector('[data-tuning-controls]');
   const primaryLabel = root.querySelector('[data-primary-label]');
   const secondaryLabel = root.querySelector('[data-secondary-label]');
   const pause = root.querySelector('[data-pause]');
@@ -55,6 +55,7 @@
     middle_enabled: '0', middle_color: '#ffffff'
   };
   const patternDefaults = {
+    separate: ['#ffffff', '#0000ff', 'rainbow'],
     'pinwheel-rainbow': ['#ff4500', '#0000ff', 'rainbow'],
     'synchronized-rainbow': ['#ff4500', '#0000ff', 'rainbow'],
     'brand-loop': ['#ff4500', '#0000ff', 'rainbow'],
@@ -146,9 +147,11 @@
   }
 
   function targetColor(index) {
-    if (mode.value === 'global' || mode.value === 'separate') {
-      let preset = mode.value === 'global' ? globalPreset.value :
-        (index < 12 ? topPreset.value : bottomPreset.value);
+    if (mode.value === 'separate') {
+      return chosenColor(index < 12 ? 'color_primary' : 'color_secondary');
+    }
+    if (mode.value === 'global') {
+      const preset = globalPreset.value;
       if (presetColors[preset]) {
         const hex = presetColors[preset];
         return [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
@@ -275,6 +278,7 @@
 
   function updateMode() {
     const custom = mode.value === 'custom-leds';
+    const separate = mode.value === 'separate';
     const rainbow = mode.value === 'pinwheel-rainbow' || mode.value === 'synchronized-rainbow';
     const animated = rainbow || mode.value === 'brand-loop' || mode.value === 'comet-loop' ||
       mode.value === 'orange-blue-pulse';
@@ -290,23 +294,26 @@
       lastMode = mode.value;
     }
     globalControls.hidden = mode.value !== 'global';
-    separateControls.hidden = mode.value !== 'separate';
     editor.hidden = !custom;
-    patternColors.hidden = !animated;
-    colorPickers.hidden = !animated || (rainbow && fields.palette_mode.value === 'rainbow');
+    patternColors.hidden = !animated && !separate;
+    colorHeading.textContent = separate ? 'Fan colors' : 'Pattern colors';
+    colorPickers.hidden = !separate && (!animated || (rainbow && fields.palette_mode.value === 'rainbow'));
+    separateHelp.hidden = !separate;
+    tuningControls.hidden = !streamed;
     for (const control of root.querySelectorAll('[data-rainbow-palette]')) control.hidden = !rainbow;
     for (const control of root.querySelectorAll('[data-comet-only]')) control.hidden = mode.value !== 'comet-loop';
     for (const control of root.querySelectorAll('[data-loop-only]')) {
-      control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value);
+      control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value) ||
+        (control.hasAttribute('data-middle-setting') && Number(fields.skipped_leds.value) === 0);
     }
     for (const control of root.querySelectorAll('[data-middle-color]')) {
       control.hidden = !['pinwheel-rainbow', 'brand-loop', 'comet-loop'].includes(mode.value) ||
-        fields.middle_enabled.value !== '1';
+        fields.middle_enabled.value !== '1' || Number(fields.skipped_leds.value) === 0;
     }
     primaryLabel.textContent = mode.value === 'comet-loop' ? 'Head' :
-      (mode.value === 'orange-blue-pulse' ? 'Top fan' : 'Primary');
+      (separate || mode.value === 'orange-blue-pulse' ? 'Top fan' : 'Primary');
     secondaryLabel.textContent = mode.value === 'comet-loop' ? 'Tail' :
-      (mode.value === 'orange-blue-pulse' ? 'Bottom fan' : 'Secondary');
+      (separate || mode.value === 'orange-blue-pulse' ? 'Bottom fan' : 'Secondary');
     popover.hidden = true;
     for (const label of root.querySelectorAll('[data-animated-only]')) label.hidden = !animated;
     for (const label of root.querySelectorAll('[data-rainbow-only]')) {
@@ -418,12 +425,12 @@
   }
 
   mode.addEventListener('change', updateMode);
-  for (const field of [globalPreset, topPreset, bottomPreset]) {
+  for (const field of [globalPreset]) {
     field.addEventListener('change', () => { updateFrameColors(true); draw(); });
   }
   for (const field of Object.values(fields)) {
-    field.addEventListener('input', () => { updateValues(); if (field === fields.palette_mode || field === fields.middle_enabled) updateMode(); updateFrameColors(); draw(); });
-    field.addEventListener('change', () => { updateValues(); if (field === fields.palette_mode || field === fields.middle_enabled) updateMode(); updateFrameColors(); draw(); });
+    field.addEventListener('input', () => { updateValues(); if ([fields.palette_mode, fields.middle_enabled, fields.skipped_leds].includes(field)) updateMode(); updateFrameColors(); draw(); });
+    field.addEventListener('change', () => { updateValues(); if ([fields.palette_mode, fields.middle_enabled, fields.skipped_leds].includes(field)) updateMode(); updateFrameColors(); draw(); });
   }
   ledIndex.addEventListener('change', draw);
   root.querySelector('[data-open-led]').addEventListener('click', () => openLedEditor(Number(ledIndex.value)));
@@ -497,9 +504,6 @@
       fields.palette_mode.value = selected[2];
     } else if (mode.value === 'global') {
       globalPreset.value = 'white';
-    } else if (mode.value === 'separate') {
-      topPreset.value = 'white';
-      bottomPreset.value = 'blue';
     }
     elapsed = 0;
     updateValues();

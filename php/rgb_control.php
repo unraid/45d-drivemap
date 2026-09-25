@@ -111,15 +111,32 @@ function homelab_rgb_set($preset, $binary = null)
   return homelab_openrgb_run($args, $binary);
 }
 
+function homelab_rgb_separate_colors($top, $bottom)
+{
+  $colors = [];
+  foreach (['top' => $top, 'bottom' => $bottom] as $fan => $value) {
+    if (!is_string($value)) {
+      throw new InvalidArgumentException('Choose valid colors for both fans.');
+    }
+    if (isset(HOMELAB_RGB_PRESETS[$value])) {
+      $colors[$fan] = HOMELAB_RGB_PRESETS[$value]['color'] ?: '000000';
+    } elseif (preg_match('/^#?[0-9A-Fa-f]{6}$/D', $value)) {
+      $colors[$fan] = strtoupper(ltrim($value, '#'));
+    } else {
+      throw new InvalidArgumentException('Choose valid colors for both fans.');
+    }
+  }
+  return $colors;
+}
+
 function homelab_rgb_set_separate($top, $bottom)
 {
-  if (!is_string($top) || !is_string($bottom) ||
-      !isset(HOMELAB_RGB_PRESETS[$top], HOMELAB_RGB_PRESETS[$bottom])) {
-    return ['ok' => false, 'error' => 'Choose listed colors for both fans.'];
+  try {
+    $colors = homelab_rgb_separate_colors($top, $bottom);
+  } catch (InvalidArgumentException $error) {
+    return ['ok' => false, 'error' => $error->getMessage()];
   }
-  $top_color = HOMELAB_RGB_PRESETS[$top]['color'] ?: '000000';
-  $bottom_color = HOMELAB_RGB_PRESETS[$bottom]['color'] ?: '000000';
-  return homelab_stream_start(['top' => $top_color, 'bottom' => $bottom_color]);
+  return homelab_stream_start($colors);
 }
 
 function homelab_rgb_set_stream_effect($effect, $input = [])

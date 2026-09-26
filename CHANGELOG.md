@@ -27,6 +27,7 @@
 - Added X4 bay mapping from ATA ports when no SATA drives are installed.
 
 ### Changed
+- Show the lighting settings and power-button option only when the supported RGB controller is present. Skip scheduled and direct lighting actions without that controller; drive mapping remains available.
 - Set editable pattern colors to the calibrated dark orange and blue palette, including Comet and separate fan colors. Rainbow patterns keep their full spectrum by default.
 - Blend Comet color across the tail and keep trailing LEDs brighter so the head and tail read as one moving pattern.
 - Smooth Comet motion between LEDs and replace stepped tail flicker with continuous variation at the existing 15 frames per second.

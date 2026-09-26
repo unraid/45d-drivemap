@@ -156,6 +156,9 @@ function homelab_schedule_apply_day($selection)
 
 function homelab_schedule_tick($force = false, $timestamp = null, $apply = null)
 {
+  if (homelab_stream_controller() === null) {
+    return ['ok' => true, 'error' => null];
+  }
   $paths = homelab_schedule_paths();
   if (!is_dir(dirname($paths['lock'])) && !mkdir(dirname($paths['lock']), 0700, true)) {
     return ['ok' => false, 'error' => 'Could not create lighting runtime directory.'];
@@ -194,6 +197,9 @@ function homelab_schedule_tick($force = false, $timestamp = null, $apply = null)
 
 function homelab_power_toggle($apply = null, $timestamp = null)
 {
+  if (homelab_stream_controller() === null) {
+    return ['ok' => true, 'error' => null];
+  }
   $paths = homelab_schedule_paths();
   if (!is_dir(dirname($paths['lock'])) && !mkdir(dirname($paths['lock']), 0700, true)) {
     return ['ok' => false, 'error' => 'Could not create lighting runtime directory.'];
@@ -247,7 +253,7 @@ function homelab_power_toggle($apply = null, $timestamp = null)
 function homelab_schedule_sync_cron()
 {
   $paths = homelab_schedule_paths();
-  if (homelab_schedule_load()['enabled']) {
+  if (homelab_schedule_load()['enabled'] && homelab_stream_controller() !== null) {
     $entry = "* * * * * /usr/bin/php /usr/local/emhttp/plugins/45homelab/scripts/45d-rgb-schedule.php >/dev/null 2>&1\n";
     if (file_put_contents($paths['cron'], $entry, LOCK_EX) === false) {
       return ['ok' => false, 'error' => 'Could not install the night schedule.'];
@@ -274,6 +280,9 @@ function homelab_schedule_sync_cron()
 
 function homelab_schedule_save($input)
 {
+  if (homelab_stream_controller() === null) {
+    return ['ok' => false, 'error' => 'Fan lighting controller was not found.'];
+  }
   try {
     $schedule = homelab_schedule_validate($input);
   } catch (InvalidArgumentException $error) {

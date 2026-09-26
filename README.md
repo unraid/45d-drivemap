@@ -20,7 +20,7 @@ set a solid color for fan lights connected to the ASRock addressable RGB header.
   - runtime logs
   in `/var/local/45d/`.
 - Supports SMART-derived fields and ZFS info endpoints used by the UI.
-- Adds **Settings > System Settings > 45HomeLab** for X4 fan lighting presets.
+- Adds **Settings > System Settings > 45HomeLab** when the supported fan lighting controller is connected.
   Fan speed is not changed.
 
 ## X4 Fan Lighting

@@ -13,6 +13,14 @@ $directory = sys_get_temp_dir() . '/45homelab-schedule-' . getmypid();
 mkdir($directory, 0700);
 putenv('HOMELAB_RGB_CONFIG_DIR=' . $directory);
 putenv('HOMELAB_RGB_RUNTIME_DIR=' . $directory);
+$sysfs = $directory . '/sys';
+$devices = $directory . '/dev';
+mkdir($sysfs . '/hidraw0/device', 0700, true);
+mkdir($devices, 0700);
+file_put_contents($sysfs . '/hidraw0/device/uevent', "HID_ID=0003:000026CE:000001A2\n");
+file_put_contents($devices . '/hidraw0', '');
+putenv('HOMELAB_RGB_HIDRAW_SYSFS=' . $sysfs);
+putenv('HOMELAB_RGB_HIDRAW_DEV=' . $devices);
 $cron_updater = $directory . '/update-cron';
 file_put_contents($cron_updater, "#/bin/bash\nexit 0\n");
 chmod($cron_updater, 0700);
@@ -105,11 +113,31 @@ schedule_check(homelab_schedule_write($paths['schedule'], ['enabled' => false, '
 schedule_check(homelab_schedule_sync_cron()['ok'] && !file_exists($paths['cron']),
   'disabled schedule removes Unraid cron entry');
 
+schedule_check(homelab_schedule_write($paths['schedule'], $schedule), 'schedule remains configured');
+schedule_check(homelab_schedule_sync_cron()['ok'] && file_exists($paths['cron']),
+  'controller allows the schedule');
+unlink($devices . '/hidraw0');
+$applied_before = count($applied);
+$button_before = count($button);
+schedule_check(homelab_schedule_sync_cron()['ok'] && !file_exists($paths['cron']) &&
+  homelab_schedule_tick(true, strtotime('2026-09-25 22:00'), $apply)['ok'] &&
+  homelab_power_toggle($press, 104)['ok'] &&
+  count($applied) === $applied_before && count($button) === $button_before &&
+  !homelab_schedule_save(['enabled' => '1', 'start' => '22:00', 'end' => '07:00'])['ok'],
+  'missing controller removes cron and skips lighting actions');
+
 foreach (glob($directory . '/*') as $path) {
-  unlink($path);
+  if (is_file($path)) unlink($path);
 }
+unlink($sysfs . '/hidraw0/device/uevent');
+rmdir($sysfs . '/hidraw0/device');
+rmdir($sysfs . '/hidraw0');
+rmdir($sysfs);
+rmdir($devices);
 rmdir($directory);
 putenv('HOMELAB_RGB_CONFIG_DIR');
 putenv('HOMELAB_RGB_RUNTIME_DIR');
 putenv('HOMELAB_UPDATE_CRON_BIN');
+putenv('HOMELAB_RGB_HIDRAW_SYSFS');
+putenv('HOMELAB_RGB_HIDRAW_DEV');
 echo "RGB schedule tests passed\n";

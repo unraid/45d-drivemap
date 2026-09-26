@@ -64,6 +64,9 @@ function homelab_openrgb_run($args, $binary = null)
 
 function homelab_rgb_detect($binary = null)
 {
+  if (homelab_stream_controller() === null) {
+    return ['ok' => false, 'output' => '', 'error' => 'Fan lighting controller was not found.'];
+  }
   $result = homelab_openrgb_run(['--list-detailed'], $binary);
   if (!$result['ok']) {
     return $result;
@@ -78,7 +81,7 @@ function homelab_rgb_detect($binary = null)
     break;
   }
   if (!$device_found) {
-    return ['ok' => false, 'output' => $result['output'], 'error' => 'X4 fan lighting controller was not found.'];
+    return ['ok' => false, 'output' => $result['output'], 'error' => 'Fan lighting controller was not found.'];
   }
   return ['ok' => true, 'output' => $result['output'], 'error' => null];
 }
@@ -87,6 +90,9 @@ function homelab_rgb_set($preset, $binary = null)
 {
   if (!is_string($preset) || homelab_rgb_label($preset) === null) {
     return ['ok' => false, 'error' => 'Choose a listed lighting option.'];
+  }
+  if (homelab_stream_controller() === null) {
+    return ['ok' => false, 'error' => 'Fan lighting controller was not found.'];
   }
   $stopped = homelab_stream_stop();
   if (!$stopped['ok']) {

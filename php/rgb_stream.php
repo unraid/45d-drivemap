@@ -114,10 +114,12 @@ function homelab_stream_paths()
 
 function homelab_stream_controller()
 {
-  foreach (glob('/sys/class/hidraw/hidraw*/device/uevent') ?: [] as $uevent) {
+  $sysfs = rtrim(getenv('HOMELAB_RGB_HIDRAW_SYSFS') ?: '/sys/class/hidraw', '/');
+  $devices = rtrim(getenv('HOMELAB_RGB_HIDRAW_DEV') ?: '/dev', '/');
+  foreach (glob("$sysfs/hidraw*/device/uevent") ?: [] as $uevent) {
     $details = @file_get_contents($uevent);
     if ($details !== false && preg_match('/^HID_ID=0003:000026CE:000001A2$/m', $details)) {
-      $device = '/dev/' . basename(dirname(dirname($uevent)));
+      $device = $devices . '/' . basename(dirname(dirname($uevent)));
       if (is_readable($device) && is_writable($device)) {
         return $device;
       }

@@ -3,6 +3,7 @@ Type="xmenu"
 Title="45HomeLab"
 Icon="lightbulb-o"
 Tag="cog"
+Cond="(include '/usr/local/emhttp/plugins/45homelab/php/rgb-available.php')"
 ---
 <?php
 $rgb_helper = '/usr/local/emhttp/plugins/45homelab/php/rgb_schedule.php';
@@ -10,6 +11,9 @@ if (!is_file($rgb_helper)) {
   $rgb_helper = __DIR__ . '/php/rgb_schedule.php';
 }
 require_once $rgb_helper;
+if (homelab_stream_controller() === null) {
+  return;
+}
 
 $message = null;
 $error = null;

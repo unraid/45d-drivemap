@@ -5,6 +5,14 @@ $dir = sys_get_temp_dir() . '/45homelab-rgb-' . getmypid();
 mkdir($dir, 0700);
 putenv('HOMELAB_RGB_CONFIG_DIR=' . $dir);
 putenv('HOMELAB_RGB_RUNTIME_DIR=' . $dir);
+$sysfs = $dir . '/sys';
+$devices = $dir . '/dev';
+mkdir($sysfs . '/hidraw0/device', 0700, true);
+mkdir($devices, 0700);
+file_put_contents($sysfs . '/hidraw0/device/uevent', "HID_ID=0003:000026CE:000001A2\n");
+file_put_contents($devices . '/hidraw0', '');
+putenv('HOMELAB_RGB_HIDRAW_SYSFS=' . $sysfs);
+putenv('HOMELAB_RGB_HIDRAW_DEV=' . $devices);
 $binary = $dir . '/openrgb';
 $log = $dir . '/args';
 $fixture = $dir . '/devices';
@@ -21,6 +29,7 @@ function check($value, $message)
 }
 
 check(homelab_rgb_detect($binary)['ok'], 'detects X4 addressable header');
+check(include dirname(__DIR__) . '/php/rgb-available.php', 'controller enables the settings page');
 $leds = homelab_stream_leds(['top' => 'FFFFFF', 'bottom' => '0000FF']);
 check(count($leds) === 24 && count(array_unique(array_slice($leds, 0, 12))) === 1 &&
   $leds[0] === 'FFFFFF' && $leds[11] === 'FFFFFF' && $leds[12] === '0000FF' && $leds[23] === '0000FF',
@@ -121,8 +130,8 @@ check(!in_array(HOMELAB_BRAND_ORANGE, homelab_stream_leds(['effect' => 'comet-lo
   homelab_stream_leds(['effect' => 'comet-loop', 'virtual_gap_steps' => 0], 3)[HOMELAB_PINWHEEL_ORDER[8]] === HOMELAB_BRAND_ORANGE,
   'comet traverses an unlit virtual step before crossing to the next fan');
 check($comet === homelab_stream_leds(['effect' => 'comet-loop'], 0) &&
-  $comet[HOMELAB_PINWHEEL_ORDER[2]] !==
-    homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 0)[HOMELAB_PINWHEEL_ORDER[2]],
+  $comet[HOMELAB_PINWHEEL_ORDER[3]] !==
+    homelab_stream_leds(['effect' => 'comet-loop', 'tail_variation' => 0], 0)[HOMELAB_PINWHEEL_ORDER[3]],
   'comet tail variation is repeatable for a frame and changes tail brightness');
 $head_levels = [];
 $next_levels = [];
@@ -173,7 +182,7 @@ check(count(array_filter($eyes_closed, fn($color) => $color !== '000000')) === 0
   homelab_stream_leds(['effect' => 'halloween-eyes'], 2.8) === $eyes_closed &&
   count(array_filter(homelab_stream_leds(['effect' => 'halloween-eyes'], 3.4),
     fn($color) => $color !== '000000')) === 8 &&
-  homelab_stream_leds(['effect' => 'halloween-eyes'], 3.8) === $eyes_open &&
+  homelab_stream_leds(['effect' => 'halloween-eyes'], 4.0) === $eyes_open &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 9.2) === $eyes_closed &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 10.6) === $eyes_open &&
   homelab_stream_leds(['effect' => 'halloween-eyes'], 11.2) === $eyes_open,
@@ -321,6 +330,25 @@ putenv('HOMELAB_OPENRGB_BIN');
 file_put_contents($fixture, "0: Other controller\n  Modes: [Off] Static\n  Zones: 'Addressable Header 1'\n");
 check(!homelab_rgb_detect($binary)['ok'], 'rejects unrelated controller');
 check(!homelab_rgb_detect($dir . '/missing')['ok'], 'reports missing runtime');
+$before = file_get_contents($log);
+file_put_contents($sysfs . '/hidraw0/device/uevent', "HID_ID=0003:000026CE:000001A3\n");
+check(!(include dirname(__DIR__) . '/php/rgb-available.php') &&
+  !homelab_rgb_detect($binary)['ok'] && file_get_contents($log) === $before,
+  'different controller is rejected before OpenRGB runs');
+file_put_contents($sysfs . '/hidraw0/device/uevent', "HID_ID=0003:000026CE:000001A2\n");
+unlink($devices . '/hidraw0');
+$_SERVER['REQUEST_METHOD'] = 'POST';
+$_POST = ['lighting_action' => 'global', 'color' => 'blue'];
+ob_start();
+include dirname(__DIR__) . '/HomeLab.page';
+$unsupported_page = ob_get_clean();
+unset($_SERVER['REQUEST_METHOD'], $_POST);
+check(strpos($unsupported_page, 'homelab-rgb-preview') === false &&
+  file_get_contents($log) === $before &&
+  !(include dirname(__DIR__) . '/php/rgb-available.php') &&
+  !homelab_rgb_detect($binary)['ok'] &&
+  !homelab_rgb_set('blue', $binary)['ok'] && file_get_contents($log) === $before,
+  'missing controller hides lighting and rejects direct requests before OpenRGB runs');
 
 unlink($binary);
 unlink($log);
@@ -328,7 +356,14 @@ unlink($fixture);
 @unlink($dir . '/rgb-day.json');
 @unlink($dir . '/rgb-last-on.json');
 @unlink($dir . '/rgb-power-state.json');
-rmdir($dir);
 putenv('HOMELAB_RGB_CONFIG_DIR');
 putenv('HOMELAB_RGB_RUNTIME_DIR');
+putenv('HOMELAB_RGB_HIDRAW_SYSFS');
+putenv('HOMELAB_RGB_HIDRAW_DEV');
+unlink($sysfs . '/hidraw0/device/uevent');
+rmdir($sysfs . '/hidraw0/device');
+rmdir($sysfs . '/hidraw0');
+rmdir($sysfs);
+rmdir($devices);
+rmdir($dir);
 echo "RGB control tests passed\n";

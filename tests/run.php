@@ -62,7 +62,7 @@ function create_context($name = '')
 {
   global $cleanup_dirs;
   $suffix = $name !== '' ? '-' . $name : '';
-  $tmp = sys_get_temp_dir() . '/45d-drivemap-tests-' . uniqid() . $suffix;
+  $tmp = sys_get_temp_dir() . '/45homelab-tests-' . uniqid() . $suffix;
   $ctx = [
     'tmp' => $tmp,
     'dev_dir' => $tmp . '/dev',
@@ -1076,6 +1076,27 @@ assert_equal($x4_result['aliases'] ?? [], [
   'alias 1-3 /dev/disk/by-id/ata-TOSHIBA_MG10AFA22TE_Z360A00TFM8J',
   'alias 1-4 /dev/disk/by-id/ata-TOSHIBA_MG10AFA22TE_Z360A021FM8J',
 ], 'x4 maps observed SATA ports in ascending DEVPATH order');
+
+// Empty X4 bays still expose ATA ports. The four bay ports are 5-8 on B860I.
+$ctx_x4_empty = create_context('ported-dmap-x4-empty');
+$ata_port_dir = $ctx_x4_empty['tmp'] . '/ata-port';
+ensure_dir($ata_port_dir);
+for ($port = 1; $port <= 8; $port++) {
+  $target = $ctx_x4_empty['tmp'] . "/pci0000:80/0000:80:17.0/ata$port/ata_port/ata$port";
+  ensure_dir($target);
+  symlink($target, "$ata_port_dir/ata$port");
+}
+$x4_empty_result = run_ported_dmap($root, $ctx_x4_empty, $x4_server, [
+  'DRIVEMAP_DMAP_LSBLK' => 'NAME="nvme0n1" TYPE="disk" TRAN="nvme"',
+  'DRIVEMAP_DMAP_ATA_PORT_DIR' => $ata_port_dir,
+]);
+assert_equal($x4_empty_result['code'] ?? 1, 0, 'x4 empty-bay dmap exits successfully');
+assert_equal($x4_empty_result['aliases'] ?? [], [
+  'alias 1-1 /dev/disk/by-path/pci-0000:80:17.0-ata-5',
+  'alias 1-2 /dev/disk/by-path/pci-0000:80:17.0-ata-6',
+  'alias 1-3 /dev/disk/by-path/pci-0000:80:17.0-ata-7',
+  'alias 1-4 /dev/disk/by-path/pci-0000:80:17.0-ata-8',
+], 'x4 maps empty bays from the highest four observed ATA ports');
 
 // Scenario 8c: AV15 base aliasing also ignores Intel sSATA when choosing the SATA bus.
 $ctx_av15_base_sata = create_context('ported-dmap-av15-base-sata-regex');

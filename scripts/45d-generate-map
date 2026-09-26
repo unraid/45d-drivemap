@@ -21,12 +21,12 @@ if ($smartctl_nocheck === false || $smartctl_nocheck === '') {
   // Default to checking SMART without spinning up standby disks.
   $smartctl_nocheck = 'standby';
 }
-$default_server_info_generator = '/usr/local/emhttp/plugins/45d-drivemap/scripts/45d-generate-server-info';
+$default_server_info_generator = '/usr/local/emhttp/plugins/45homelab/scripts/45d-generate-server-info';
 if (!is_file($default_server_info_generator)) {
   $default_server_info_generator = __DIR__ . '/45d-generate-server-info';
 }
 $server_info_generator = getenv('DRIVEMAP_SERVER_INFO_GENERATOR') ?: $default_server_info_generator;
-$default_vdev_id_generator = '/usr/local/emhttp/plugins/45d-drivemap/scripts/45d-generate-vdev-id';
+$default_vdev_id_generator = '/usr/local/emhttp/plugins/45homelab/scripts/45d-generate-vdev-id';
 if (!is_file($default_vdev_id_generator)) {
   $default_vdev_id_generator = __DIR__ . '/45d-generate-vdev-id';
 }

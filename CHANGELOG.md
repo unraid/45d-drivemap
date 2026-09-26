@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.5.0
+
+### Added
+- Added Halloween Eyes: two fan eyes with a sideways preview, selectable glow and accent colors, synchronized blinks, and occasional double blinks.
+- Changed Halloween Eyes to black out LED rows in sequence, hold narrow lit slits, then reopen them.
+- Rotated the slits vertically, added a fully dark closed phase, smoothed the LED fade, and used one selectable eye color.
+- Corrected the sideways fade direction and varied blink timing between cycles.
+- Added an eye-angle control for parallel or mirrored diagonal Halloween eyes.
+- Added an optional mesh view that softens the lighting preview without changing the fan output.
+- Spread mesh-view light across each fan face to match the X4's illuminated fan surface.
+- Removed rapid second blinks and added light frame smoothing to reduce flicker while keeping a fully dark closed phase.
+- Added basic solid-color and off controls for the 45HomeLab X4 fan lights through OpenRGB.
+- Added Warm White, Yellow, Teal, Cyan, and Pink fan lighting presets.
+- Added Rainbow Flow, Color Wave, and Spectrum Cycle effects.
+- Added separate top and bottom fan colors, Outer Loop and Synchronized Wave effects, and a hub LED preview for the X4's 24-LED chain.
+- Added a unified lighting editor with previews for all modes, per-LED color popovers, custom palette saving, and live tuning controls for streamed effects.
+- Added Two-Color Loop, Comet Loop, and Two-Color Pulse animated effects.
+- Extended each outer loop arc to nine LEDs per fan so the patterns reach farther around both sides.
+- Added selectable colors for streamed patterns, optional two-color rainbow palettes, and Comet tail length and variation controls.
+- Added per-fan skipped LED and separate middle color controls for Outer Loop, Two-Color Loop, and Comet Loop.
+- Added adjustable unlit virtual steps at both fan crossings to smooth motion around the combined outer loop.
+- Added a local-time night schedule that turns fan lights off and restores the saved daytime mode.
+- Added a selectable fan-light toggle action through Unraid 7.4's power-button plugin hook.
+- Debounced duplicate physical power-button events so one press leaves the lights in the selected state.
+- Added X4 bay mapping from ATA ports when no SATA drives are installed.
+
+### Changed
+- Show the lighting settings and power-button option only when the supported RGB controller is present. Skip scheduled and direct lighting actions without that controller; drive mapping remains available.
+- Set editable pattern colors to the calibrated dark orange and blue palette, including Comet and separate fan colors. Rainbow patterns keep their full spectrum by default.
+- Blend Comet color across the tail and keep trailing LEDs brighter so the head and tail read as one moving pattern.
+- Smooth Comet motion between LEDs and replace stepped tail flicker with continuous variation at the existing 15 frames per second.
+- Extend the default Comet tail from six to eight LEDs.
+- Center the Comet orange-to-blue blend halfway through its tail.
+- Shortened lighting editor labels and help text. Removed repeated setup and hardware details from the settings page.
+- Shared the two color pickers across separate fan colors and animated patterns, with labels and controls matched to each lighting mode.
+- Replaced the skipped LED slider with balanced middle widths of 0, 2, 4, or 6 LEDs per fan; older odd settings round down, and the default is 4.
+- Renamed the Unraid plugin to 45HomeLab and moved its settings under System Settings.
+- Preserved drive-map overrides from existing 45d-drivemap installations during installation.
+- Tuned the Orange preset to look less yellow on the X4 fans.
+- Paced animated fan streams at 15 frames per second and blended adjacent frames for smoother motion.
+
+### Fixed
+- Run Unraid's cron updater through Bash, since its script lacks a valid shebang. Keep invalid night schedule input visible and show validation next to the schedule controls.
+- Target the X4 controller without OpenRGB's zone flag, which accepts commands but leaves the fan lights unchanged on this board.
+- Let Unraid handle CSRF validation for the lighting form; its request handler removes the token before the page runs.
+- Ensure faded LEDs reach fully off instead of remaining dimly lit.
+- Calibrate the X4 fan preview to the measured LED positions; LED 1 is at about 6:30 on the mounted fans. Pair top middle LEDs across the gap for even skipped counts.
+
 ## 0.4.0
 
 ### Added

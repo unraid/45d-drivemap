@@ -1,0 +1,105 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name "45homelab">
+  <!ENTITY author "45Drives + Unraid">
+  <!ENTITY version "__VERSION__">
+  <!ENTITY plugin_url "__PLUGIN_URL__">
+  <!ENTITY package_txz_name "45homelab-&version;.txz">
+  <!ENTITY package_txz_url "__PACKAGE_URL_BASE__/&package_txz_name;">
+  <!ENTITY package_txz_sha256 "__PACKAGE_SHA256__">
+  <!ENTITY package_source "/boot/config/plugins/&name;/&package_txz_name;">
+]>
+<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&plugin_url;"
+  launch="45HomeLab" min="6.12.0" icon="lightbulb-o">
+
+  <CHANGES>
+__CHANGES__
+  </CHANGES>
+
+  <FILE Name="&package_source;">
+    <URL>&package_txz_url;</URL>
+    <SHA256>&package_txz_sha256;</SHA256>
+  </FILE>
+
+  <FILE Run="/bin/bash" Method="install">
+    <INLINE>
+<![CDATA[
+set -e
+
+MAINNAME="45homelab"
+PLUGIN_DIR="/usr/local/emhttp/plugins/${MAINNAME}"
+PACKAGE_FILE="/boot/config/plugins/${MAINNAME}/45homelab-__VERSION__.txz"
+
+mkdir -p "/boot/config/plugins/${MAINNAME}"
+mkdir -p /var/local/45d
+
+# Preserve existing drive-map overrides when upgrading from the old plugin.
+for CONFIG_FILE in product_name hba_phy_order_overrides.json; do
+  if [ -f "/boot/config/plugins/45d-drivemap/${CONFIG_FILE}" ] &&
+     [ ! -e "/boot/config/plugins/${MAINNAME}/${CONFIG_FILE}" ]; then
+    cp -p "/boot/config/plugins/45d-drivemap/${CONFIG_FILE}" "/boot/config/plugins/${MAINNAME}/${CONFIG_FILE}"
+  fi
+done
+
+if [ -f "${PACKAGE_FILE}" ]; then
+  if [ -f /var/local/45d/rgb-stream.pid ]; then
+    RGB_PID=$(cat /var/local/45d/rgb-stream.pid)
+    if [ -r "/proc/${RGB_PID}/cmdline" ] && tr '\000' ' ' < "/proc/${RGB_PID}/cmdline" | grep -q '45d-rgb-stream.php'; then
+      kill "${RGB_PID}" || true
+    fi
+  fi
+  rm -rf "${PLUGIN_DIR}"
+  tar --no-overwrite-dir -xf "${PACKAGE_FILE}" -C /
+fi
+
+chmod +x "${PLUGIN_DIR}/scripts/45d-generate-map" || true
+chmod +x "${PLUGIN_DIR}/scripts/45d-generate-server-info" || true
+if [ -d /etc/acpi/powerbutton.d ]; then
+  install -m 0755 "${PLUGIN_DIR}/scripts/45d-rgb-powerbutton" /etc/acpi/powerbutton.d/45homelab-lights
+fi
+if [ -f "/boot/config/plugins/${MAINNAME}/rgb-schedule.json" ]; then
+  /usr/bin/php "${PLUGIN_DIR}/scripts/45d-rgb-schedule.php" --install || true
+fi
+]]>
+    </INLINE>
+  </FILE>
+
+  <FILE Run="/bin/bash" Method="remove">
+    <INLINE>
+<![CDATA[
+set -e
+
+MAINNAME="45homelab"
+PLUGIN_DIR="/usr/local/emhttp/plugins/${MAINNAME}"
+STATE_DIR="/var/local/45d"
+BOOT_DIR="/boot/config/plugins/${MAINNAME}"
+
+rm -f "${BOOT_DIR}/rgb.cron"
+if [ -f /boot/config/plugins/dynamix/dynamix.cfg ] &&
+   grep -q '^powerbutton="45homelab-lights"' /boot/config/plugins/dynamix/dynamix.cfg; then
+  sed -i 's/^powerbutton="45homelab-lights"/powerbutton="shutdown"/' /boot/config/plugins/dynamix/dynamix.cfg
+fi
+rm -f /etc/acpi/powerbutton.d/45homelab-lights
+if [ -x /usr/local/sbin/update_cron ]; then
+  /usr/local/sbin/update_cron || true
+fi
+
+if [ -f "${STATE_DIR}/rgb-stream.pid" ]; then
+  RGB_PID=$(cat "${STATE_DIR}/rgb-stream.pid")
+  if [ -r "/proc/${RGB_PID}/cmdline" ] && tr '\000' ' ' < "/proc/${RGB_PID}/cmdline" | grep -q '45d-rgb-stream.php'; then
+    kill "${RGB_PID}" || true
+  fi
+fi
+
+rm -rf "${PLUGIN_DIR}"
+rm -rf "${STATE_DIR}"
+
+if [ -d "${BOOT_DIR}" ]; then
+  rm -f "${BOOT_DIR}"/45homelab-*.txz
+  rmdir "${BOOT_DIR}" 2>/dev/null || true
+fi
+]]>
+    </INLINE>
+  </FILE>
+
+</PLUGIN>

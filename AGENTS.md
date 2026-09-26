@@ -85,7 +85,7 @@ cp -a vendor/45drives/cockpit-hardware/45drives-disks/dist/assets/. \
 ### index.html is hand-maintained — do NOT blindly copy `dist/index.html`
 
 `assets/45d/45drives-disks/index.html` contains an **inline Unraid Cockpit shim**
-(an inline `<script>` block that sets `apiBase: "/plugins/45d-drivemap/php/api.php"`
+(an inline `<script>` block that sets `apiBase: "/plugins/45homelab/php/api.php"`
 and stands in for Cockpit's loader). A raw `vite` build's `index.html` does **not**
 have this shim. So you must:
 

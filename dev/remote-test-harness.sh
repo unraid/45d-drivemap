@@ -24,7 +24,7 @@ Options:
   --method <auto|rsync|scp>
                          Transfer method (default: auto)
   --remote-dir <path>    Remote workspace path
-                         (default: /tmp/45d-drivemap-dev-<timestamp>-<pid>)
+                         (default: /tmp/45homelab-dev-<timestamp>-<pid>)
   --full                 Run full php tests/run.php (requires python3 + vendor tree)
                          If python3 is missing remotely, falls back to smoke tests.
   --simulate-fixture <path>
@@ -96,7 +96,7 @@ if [[ "${METHOD}" != "auto" && "${METHOD}" != "rsync" && "${METHOD}" != "scp" ]]
 fi
 
 if [[ -z "${REMOTE_DIR}" ]]; then
-  REMOTE_DIR="/tmp/45d-drivemap-dev-$(date +%Y%m%d-%H%M%S)-$$"
+  REMOTE_DIR="/tmp/45homelab-dev-$(date +%Y%m%d-%H%M%S)-$$"
 fi
 
 if [[ "${METHOD}" == "auto" ]]; then

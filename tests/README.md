@@ -6,6 +6,12 @@ Run the generator + API parity checks:
 php tests/run.php
 ```
 
+Run the X4 RGB controller command and preset checks:
+
+```bash
+php tests/rgb_control.php
+```
+
 Run the non-45d smoke suite (no Python required):
 
 ```bash

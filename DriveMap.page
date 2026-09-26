@@ -3,7 +3,7 @@ Title="Drive Map"
 Tag="th"
 ---
 <?PHP
-$plugin = '45d-drivemap';
+$plugin = '45homelab';
 $asset_root = "/plugins/$plugin/assets/45d";
 $asset_base = "$asset_root/45drives-disks";
 $api_base = "/plugins/$plugin/php/api.php";
@@ -19,12 +19,12 @@ $use_embedded = is_file($embedded_fs);
     border: 0;
   }
   </style>
-  <iframe id="drivemap-frame" title="45D Drive Map" src="<?=$asset_base?>/index.html"></iframe>
+  <iframe id="drivemap-frame" title="45HomeLab Drive Map" src="<?=$asset_base?>/index.html"></iframe>
 <?else:?>
   <link rel="stylesheet" href="<?=$asset_root?>/drivemap.css">
   <div id="drive-map-app" class="drivemap" data-api="<?=$api_base?>" data-asset-base="<?=$asset_root?>">
     <div class="drivemap-toolbar">
-      <div class="drivemap-title">45D Drive Map</div>
+      <div class="drivemap-title">45HomeLab Drive Map</div>
       <div class="drivemap-meta">
         <span id="drivemap-status">Loading map...</span>
         <input id="drivemap-refresh" type="button" value="Refresh">

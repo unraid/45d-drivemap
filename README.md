@@ -1,12 +1,12 @@
-# 45D Drive Map (Unraid Plugin)
+# 45HomeLab (Unraid Plugin)
 
-Embed the 45Drives disk map UI directly in Unraid's **Main** page and generate
-map/server metadata on the Unraid host.
+Embed the 45Drives disk map UI in Unraid's **Main** page. On the 45HomeLab X4,
+set a solid color for fan lights connected to the ASRock addressable RGB header.
 
 ## Stable Plugin Links
 
 - Install / update URL (stable latest):
-  - `https://github.com/unraid/45d-drivemap/releases/latest/download/45d-drivemap.plg`
+  - `https://github.com/unraid/45d-drivemap/releases/latest/download/45homelab.plg`
 - Release history (version-specific assets):
   - `https://github.com/unraid/45d-drivemap/releases`
 
@@ -20,22 +20,108 @@ map/server metadata on the Unraid host.
   - runtime logs
   in `/var/local/45d/`.
 - Supports SMART-derived fields and ZFS info endpoints used by the UI.
+- Adds **Settings > System Settings > 45HomeLab** when the supported fan lighting controller is connected.
+  Fan speed is not changed.
+
+## X4 Fan Lighting
+
+Install Simon's [OpenRGB Unraid plugin](https://github.com/unraid/unraid-openrgb/releases/latest/download/openrgb.plg)
+first. 45HomeLab uses its `/usr/bin/openrgb` command. It does not bundle another
+OpenRGB runtime. The X4 controller must appear as `ASRock B860I WiFi` with
+`Addressable Header 1` in `openrgb --list-detailed`.
+
+Select Off, White, Warm White, Red, Orange, Yellow, Green, Teal, Cyan, Blue,
+Purple, or Pink. Animated options include Rainbow Flow, Color Wave, and Spectrum
+Cycle. Click **Apply lighting**.
+The lighting editor also offers independent, freely chosen colors for the top and
+bottom fans, Outer Loop, Synchronized Wave, Two-Color Loop, Comet Loop,
+Two-Color Pulse, Halloween Eyes, and custom colors for all 24 LEDs. Select Custom LEDs, then select a hub LED to open its
+color editor, or fill either fan. The orange/blue split button provides a
+starting palette. Apply the lighting to send it to the fans. The palette is saved at
+`/boot/config/plugins/45homelab/rgb-custom.json`.
+Separate fan colors and animated patterns start with the X4's calibrated dark
+orange (`#FF4500`) and blue (`#0000FF`). Outer Loop and Synchronized Wave keep
+their full rainbow by default. Select Two colors to use the orange and blue
+palette for either rainbow pattern. These defaults do not replace saved lighting choices.
+Outer Loop, Two-Color Loop, and Comet Loop reserve four inward-facing LEDs per
+fan by default. The Middle width control offers zero, two, four, or six LEDs per
+fan and updates the preview before applying. Middle LEDs can stay off or use a
+separate color. Separate fan colors and streamed patterns share two color pickers.
+Rainbow patterns can use
+their full rainbow or blend the two chosen colors. Comet also offers tail length
+and tail variation; variation changes individual tail LEDs over time while the
+head follows the selected path. The default tail length is eight LEDs. The
+head-to-tail color change is centered halfway through the tail.
+Halloween Eyes treats each fan as an eye when the case is on its side. The LEDs
+seen at the top and bottom fade first. Both eyes close fully, then open smoothly.
+Blink timing varies between cycles. The editor shows a sideways preview. Set one eye color, blink
+interval, and eye angle before applying. Zero degrees keeps the eyes parallel;
+positive and negative angles tilt them in opposite directions.
+
+The preview has controls for rotation time, direction, hue shift, brightness,
+bottom fan alignment, pattern repeats, and fade. Hue shift applies to full
+rainbow palettes. Animated streams run at 15 frames per second. Static custom
+palettes run at 5 frames per second. Applying
+any global option stops the stream and returns control to OpenRGB. Fan speed is
+unaffected.
+Select Mesh view above the preview to see softened light spread across each fan
+face through a simulated case mesh. This changes only the preview, not the fan lights.
+Outer Loop, Two-Color Loop, and Comet Loop also have a Virtual gap control.
+It adds zero to three unlit timing steps at each transition between fans;
+the default is one. These steps are shown as faint rings in the preview and
+do not address or turn off any physical LED.
+The mounted X4 fans place the gap between physical LEDs. The even width choices
+balance the middle area on both sides. Older odd widths round down to the next
+even choice when loaded.
+Night schedule uses the server's local clock. Choose an off time and restore
+time in Settings > System Settings > 45HomeLab, then enable night mode. It turns
+fan lights off during that window and restores the last applied daytime mode.
+The schedule and daytime selection are saved under
+`/boot/config/plugins/45homelab/`; Unraid's plugin cron runs once per minute.
+Leave night mode disabled until the desired hours are selected. Applying a new
+lighting mode at night saves it for daytime and returns the lights to off.
+The schedule is reinstalled at plugin startup; reboot restoration has not yet
+been checked on hardware.
+
+On Unraid 7.4.0 or newer, the plugin adds **Toggle fan lights** to Settings >
+Power Settings > Power Button. Select that action to let a press switch the fan
+lights off or restore the last lit mode. The plugin does not change the power
+button's existing action automatically. A button press during night mode
+temporarily overrides the lights until the next schedule transition. Repeat
+button events within one second are ignored because some boards dispatch
+one physical press twice.
+The control targets only the X4 addressable header. Other OpenRGB devices are
+left alone. Applying a color changes the controller now; persistence across a
+power cycle has not been verified.
+The two daisy-chained ARCTIC fans on the tested X4 form a 24-LED serial chain:
+LEDs 1–12 are the top fan and 13–24 are the bottom fan. The independent controls
+use the ASRock USB controller's HID stream. A fixed white/blue test and an
+alternating white/blue test confirmed this mapping on the X4. The stream runs
+while independent colors or a streamed effect are selected and ends when a
+global lighting option is applied or the plugin is removed. Persistence across
+a reboot has not been verified.
 
 ## Getting Started
 
 1. In Unraid, open **Plugins**.
 2. Choose **Install Plugin**.
 3. Paste the stable URL:
-   - `https://github.com/unraid/45d-drivemap/releases/latest/download/45d-drivemap.plg`
+   - `https://github.com/unraid/45d-drivemap/releases/latest/download/45homelab.plg`
 4. Install, then open **Main** and scroll to **Drive Map** (top section).
 5. Click **Refresh** in the Drive Map toolbar to force regeneration if needed.
+
+Existing `45d-drivemap` installs need a manual plugin replacement because the
+Unraid plugin ID changed. Remove the old plugin, then install the 45HomeLab URL
+above. The new installer copies `product_name` and
+`hba_phy_order_overrides.json` from the old plugin config directory when those
+files still exist.
 
 ## Configuration Overrides
 
 - To override model inference, place a product name override in
-  `/boot/config/plugins/45d-drivemap/product_name`.
+  `/boot/config/plugins/45homelab/product_name`.
 - To override HBA port/phy order for non-standard motherboard/HBA builds, create
-  `/boot/config/plugins/45d-drivemap/hba_phy_order_overrides.json`:
+  `/boot/config/plugins/45homelab/hba_phy_order_overrides.json`:
 
 ```json
 {
@@ -53,7 +139,7 @@ aliases after changing this file.
 To collect the current HBA/SATA path/device evidence for building an override, run:
 
 ```bash
-/usr/local/emhttp/plugins/45d-drivemap/scripts/45d-list-hba-paths
+/usr/local/emhttp/plugins/45homelab/scripts/45d-list-hba-paths
 ```
 
 It prints `hba_path`, resolved `/dev/sdX`, serial, model, size, PCI bus, and
@@ -64,9 +150,9 @@ support ticket.
 
 Removing the plugin cleans up:
 
-- `/usr/local/emhttp/plugins/45d-drivemap`
+- `/usr/local/emhttp/plugins/45homelab`
 - `/var/local/45d`
-- cached package files under `/boot/config/plugins/45d-drivemap`
+- cached package files under `/boot/config/plugins/45homelab`
 
 ## Development
 

@@ -4,7 +4,7 @@ Icon="icon-simulator"
 Tag="wrench"
 ---
 <?PHP
-$plugin = '45d-drivemap';
+$plugin = '45homelab';
 $plugin_dir = "/usr/local/emhttp/plugins/$plugin";
 $map_script = "$plugin_dir/scripts/45d-generate-map";
 $alias_file = '/etc/vdev_id.conf';
@@ -88,7 +88,7 @@ function bay_ids_from_rows($rows)
 function write_alias_map($path, $aliases)
 {
   $lines = [
-    '# 45D Drive Map Dev simulation file',
+    '# 45HomeLab Drive Map Dev simulation file',
     '# Generated at ' . gmdate('c'),
   ];
   foreach ($aliases as $alias) {

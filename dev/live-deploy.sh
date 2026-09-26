@@ -5,7 +5,7 @@ ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 HOST=""
 METHOD="auto"
-PLUGIN_DIR="/usr/local/emhttp/plugins/45d-drivemap"
+PLUGIN_DIR="/usr/local/emhttp/plugins/45homelab"
 INCLUDE_ASSETS=0
 INCLUDE_DEV_PAGES=0
 DRY_RUN=0
@@ -27,7 +27,7 @@ Options:
   --method <auto|rsync|scp>
                          Transfer method (default: auto)
   --plugin-dir <path>    Remote plugin path
-                         (default: /usr/local/emhttp/plugins/45d-drivemap)
+                         (default: /usr/local/emhttp/plugins/45homelab)
   --include-assets       Include assets/ (frontend bundle)
   --include-dev-pages    Include dev-only pages
                          (DriveMapDevTools.page, DriveMapDevToolsSimulator.page)

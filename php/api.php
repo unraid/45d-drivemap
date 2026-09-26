@@ -2,7 +2,7 @@
 // API entrypoint used by both the embedded 45Drives UI shim and the fallback
 // in-plugin renderer. This file orchestrates data generation and serves
 // normalized JSON payloads from /var/local/45d.
-$plugin = '45d-drivemap';
+$plugin = '45homelab';
 $base_dir = getenv('DRIVEMAP_OUTPUT_DIR') ?: '/var/local/45d';
 $map_file = getenv('DRIVEMAP_OUTPUT_FILE') ?: ($base_dir . '/drivemap.json');
 $log_file = getenv('DRIVEMAP_LOG_FILE') ?: ($base_dir . '/drivemap.log');

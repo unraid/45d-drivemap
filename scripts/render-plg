@@ -2,13 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-TEMPLATE="${ROOT_DIR}/45d-drivemap.plg.template"
-OUT="${ROOT_DIR}/45d-drivemap.plg"
+TEMPLATE="${ROOT_DIR}/45homelab.plg.template"
+OUT="${ROOT_DIR}/45homelab.plg"
 CHANGELOG="${ROOT_DIR}/CHANGELOG.md"
 
 VERSION="${1:-$(awk -F= '/^version=/{print $2}' "${ROOT_DIR}/plugin.cfg")}"
 SHA256="${2:-}"
-REPO="${3:-pujitm/45d-drivemap-unraid}"
+REPO="${3:-unraid/45d-drivemap}"
 
 if [[ ! -f "${TEMPLATE}" ]]; then
   echo "Template not found: ${TEMPLATE}" >&2
@@ -20,7 +20,7 @@ if [[ ! -f "${CHANGELOG}" ]]; then
 fi
 
 if [[ -z "${SHA256}" ]]; then
-  PACKAGE="${ROOT_DIR}/packages/45d-drivemap-${VERSION}.txz"
+  PACKAGE="${ROOT_DIR}/packages/45homelab-${VERSION}.txz"
   if [[ ! -f "${PACKAGE}" ]]; then
     echo "Package not found for checksum: ${PACKAGE}" >&2
     exit 1
@@ -28,7 +28,7 @@ if [[ -z "${SHA256}" ]]; then
   SHA256=$(shasum -a 256 "${PACKAGE}" | awk '{print $1}')
 fi
 
-PLUGIN_URL="https://github.com/${REPO}/releases/latest/download/45d-drivemap.plg"
+PLUGIN_URL="https://github.com/${REPO}/releases/latest/download/45homelab.plg"
 PACKAGE_URL_BASE="https://github.com/${REPO}/releases/download/v${VERSION}"
 CHANGES_BLOCK="$(
   awk '
